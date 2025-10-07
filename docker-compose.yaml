@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+
+  eda:
+    image: ghcr.io/eda-labs/eda-core:latest
+    container_name: eda
+    ports:
+      - "8080:8080"
+    environment:
+      - EDA_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EDA_FLOW_PATH=/app/flows
+    volumes:
+      - ./eda-flows:/app/flows
+    depends_on:
+      - kafka
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin

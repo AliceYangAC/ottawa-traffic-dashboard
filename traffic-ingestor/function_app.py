@@ -5,8 +5,11 @@ import time
 
 app = func.FunctionApp()
 
+# Configuration; later store in key vault or environment variables
+EDA_WEBHOOK_URL = "https://your-nokia-eda-endpoint.com/api/trigger"
 TRAFFIC_URL = "https://traffic.ottawa.ca/map/service/events?accept-language=en"
 
+# Retry configuration
 MAX_RETRIES = 3
 BACKOFF_SECONDS = 5
 
