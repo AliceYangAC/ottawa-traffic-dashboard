@@ -6,3 +6,5 @@ azure-functions
 requests
 jsonschema
 pytest
+azure-data-tables
+python-dotenv
