@@ -41,6 +41,39 @@ KANATA_KEYWORDS = [
     "Innovation Drive", "Klondike Road", "Huntmar Drive"
 ]
 
+# Helper function to request token to access Nokia EDA API
+def get_eda_access_token():
+    token_url = os.getenv("KEYCLOAK_TOKEN_URL")
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
+    username = os.getenv("USERNAME")
+    password = os.getenv("PASSWORD")
+
+    payload = {
+        "client_id": client_id,
+        "username": username,
+        "password": password,
+        "grant_type": "password"
+    }
+
+    if client_secret:
+        payload["client_secret"] = client_secret
+
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    try:
+        response = requests.post(token_url, data=payload, headers=headers)
+        response.raise_for_status()
+        token_data = response.json()
+        access_token = token_data.get("access_token")
+        print("Successfully retrieved EDA access token.")
+        return access_token
+    except Exception as e:
+        print(f"Failed to retrieve EDA token: {str(e)}")
+        return None
+    
 # Helper function to see if the traffic event if near a Kanata street
 def is_kanata_event(event):
     location = event.get("location", {})
@@ -149,37 +182,60 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
             # Store the current events to later ensure no duplication in Azure Table
             current_event_keys = set()
 
-            for event in high_priority:
-                description = event.get("message", "Unknown location")
-                event_type = event.get("eventType", "Unknown event")
+            access_token = get_eda_access_token()
+            if not access_token:
+                print("No access token available. Skipping EDA triggers.")
+            else:
+                for event in high_priority:
+                    description = event.get("message", "Unknown location")
+                    event_type = event.get("eventType", "Unknown event")
 
-                print(f"Triggering EDA for {event_type} at {description}".encode('ascii', 'replace').decode())
-                payload = {
-                    "eventType": event_type,
-                    "location": description,
-                    "timestamp": event.get("startTime", ""),
-                    "priority": event.get("priority", ""),
-                    "status": event.get("status", "")
-                }
-                
-                # Generate RowKey
-                start_time = event.get("startTime", "unknown")
-                row_key = f"{event.get('eventType', 'UnknownEvent')}-{start_time.replace(':', '').replace('-', '').replace('T', '')}"
-                current_event_keys.add(row_key)
-                
-                try:
-                    validate(instance=payload, schema=EDA_PAYLOAD_SCHEMA)
-                    eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, timeout=10)
-                    eda_response.raise_for_status()
-                    print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
-                    store_event_in_table(event)
-                except ValidationError as ve:
-                    print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
-                except requests.exceptions.RequestException as e:
-                    print(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
+                    print(f"Triggering EDA for {event_type} at {description}".encode('ascii', 'replace').decode())
+                    payload = {
+                        "eventType": event_type,
+                        "location": description,
+                        "timestamp": event.get("startTime", ""),
+                        "priority": event.get("priority", ""),
+                        "status": event.get("status", "")
+                    }
+                    
+                    # Generate RowKey
+                    start_time = event.get("startTime", "unknown")
+                    row_key = f"{event.get('eventType', 'UnknownEvent')}-{start_time.replace(':', '').replace('-', '').replace('T', '')}"
+                    current_event_keys.add(row_key)
+                    
+                    try:
+                        validate(instance=payload, schema=EDA_PAYLOAD_SCHEMA)
+                        eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, timeout=10)
+                        eda_response.raise_for_status()
+                        print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
+                        store_event_in_table(event)
+                        # access_token = get_eda_access_token()
+                        # if not access_token:
+                        #     print("No access token available. Skipping EDA trigger.")
+                        #     continue
 
-            cleanup_inactive_events(current_event_keys)
-            return func.HttpResponse(str(high_priority), status_code=200)
+                        headers = {
+                            "Authorization": f"Bearer {access_token}",
+                            "Content-Type": "application/json"
+                        }
+
+                        try:
+                            validate(instance=payload, schema=EDA_PAYLOAD_SCHEMA)
+                            eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, headers=headers, timeout=10)
+                            eda_response.raise_for_status()
+                            print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
+                        except ValidationError as ve:
+                            print(f"Payload validation failed: {ve.message}")
+                        except requests.exceptions.RequestException as e:
+                            print(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}")
+                    except ValidationError as ve:
+                        print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
+                    except requests.exceptions.RequestException as e:
+                        print(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
+
+                cleanup_inactive_events(current_event_keys)
+                return func.HttpResponse(str(high_priority), status_code=200)
 
         except requests.exceptions.RequestException as e:
             logging.warning(f"Request failed: {type(e).__name__} - {str(e)}")
