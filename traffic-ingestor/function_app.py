@@ -2,12 +2,26 @@ import azure.functions as func
 import logging
 import requests
 import time
+from jsonschema import validate, ValidationError
 
 app = func.FunctionApp()
 
 # Configuration; later store in key vault or environment variables
+# Store EDA_WEBHOOK_URL in Azure Key Vault to avoid hardcoding secrets.
 EDA_WEBHOOK_URL = "https://your-nokia-eda-endpoint.com/api/trigger"
 TRAFFIC_URL = "https://traffic.ottawa.ca/map/service/events?accept-language=en"
+
+EDA_PAYLOAD_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "eventType": {"type": "string"},
+        "location": {"type": "string"},
+        "timestamp": {"type": "string"},
+        "priority": {"type": "string"},
+        "status": {"type": "string"}
+    },
+    "required": ["eventType", "location", "timestamp", "priority", "status"]
+}
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -49,7 +63,23 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 event_type = event.get("eventType", "Unknown event")
 
                 logging.info(f"Triggering EDA for {event_type} at {description}")
-                # Simulate Nokia EDA trigger here
+                payload = {
+                    "eventType": event_type,
+                    "location": description,
+                    "timestamp": event.get("startTime", ""),
+                    "priority": event.get("priority", ""),
+                    "status": event.get("status", "")
+                }
+
+                try:
+                    validate(instance=payload, schema=EDA_PAYLOAD_SCHEMA)
+                    eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, timeout=10)
+                    eda_response.raise_for_status()
+                    logging.info(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
+                except ValidationError as ve:
+                    logging.error(f"Payload validation failed: {ve.message}")
+                except requests.exceptions.RequestException as e:
+                    logging.error(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}")
 
             return func.HttpResponse(str(high_priority), status_code=200)
 
