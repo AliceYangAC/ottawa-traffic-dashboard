@@ -3,19 +3,23 @@ import logging
 import requests
 import time
 import os
-from azure.data.tables import TableServiceClient
 from jsonschema import validate, ValidationError
 from dotenv import load_dotenv
+from helper_functions import cleanup_inactive_events, get_eda_access_token, store_event_in_table
 
 load_dotenv()
 
 app = func.FunctionApp()
 
-# Configuration; later store in key vault or environment variables
-# Store EDA_WEBHOOK_URL in Azure Key Vault to avoid hardcoding secrets.
+# Later store in Azure Key Vault
 EDA_WEBHOOK_URL = os.getenv("EDA_WEBHOOK_URL")
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
 
 TABLE_NAME = "TrafficEvents"
 
@@ -34,105 +38,6 @@ EDA_PAYLOAD_SCHEMA = {
 # Retry configuration
 MAX_RETRIES = 3
 BACKOFF_SECONDS = 5
-
-KANATA_KEYWORDS = [
-    "Kanata", "March Road", "Terry Fox Drive", "Eagleson Road",
-    "Carling Avenue", "Legget Drive", "Solandt Road", "Campeau Drive",
-    "Innovation Drive", "Klondike Road", "Huntmar Drive"
-]
-
-# Helper function to request token to access Nokia EDA API
-def get_eda_access_token():
-    token_url = os.getenv("KEYCLOAK_TOKEN_URL")
-    client_id = os.getenv("CLIENT_ID")
-    client_secret = os.getenv("CLIENT_SECRET")
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
-
-    payload = {
-        "client_id": client_id,
-        "username": username,
-        "password": password,
-        "grant_type": "password"
-    }
-
-    if client_secret:
-        payload["client_secret"] = client_secret
-
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-
-    try:
-        response = requests.post(token_url, data=payload, headers=headers)
-        response.raise_for_status()
-        token_data = response.json()
-        access_token = token_data.get("access_token")
-        print("Successfully retrieved EDA access token.")
-        return access_token
-    except Exception as e:
-        print(f"Failed to retrieve EDA token: {str(e)}")
-        return None
-    
-# Helper function to see if the traffic event if near a Kanata street
-def is_kanata_event(event):
-    location = event.get("location", {})
-    description = location.get("description", "").lower()
-    return any(keyword.lower() in description for keyword in KANATA_KEYWORDS)
-
-# Helper function to store new events in Azure Table Storage, delete them if no longer active,
-# and avoid duplicating existing events
-def store_event_in_table(event):
-    try:
-        table_service = TableServiceClient.from_connection_string(conn_str=STORAGE_CONNECTION_STRING)
-        table_client = table_service.get_table_client(table_name=TABLE_NAME)
-
-        location = event.get("location", {})
-        description = location.get("description", "Unknown location")
-        event_type = event.get("eventType", "Unknown event")
-        timestamp = event.get("startTime", "")
-        priority = event.get("priority", "")
-        status = event.get("status", "")
-
-        row_key = f"{event_type}-{timestamp.replace(':', '').replace('-', '').replace('T', '')}"
-
-        # Check if entity already exists
-        try:
-            existing = table_client.get_entity(partition_key="OttawaTraffic", row_key=row_key)
-            print(f"Event already exists in Table Storage: {row_key}")
-            return  # Skip storing duplicate
-        except Exception:
-            pass  # Entity does not exist, proceed to insert
-
-        entity = {
-            "PartitionKey": "OttawaTraffic",
-            "RowKey": row_key,
-            "EventType": event_type,
-            "Location": description,
-            "Timestamp": timestamp,
-            "Priority": priority,
-            "Status": status
-        }
-
-        table_client.create_entity(entity)
-        print(f"Stored new event in Table Storage: {row_key}")
-    except Exception as e:
-        print(f"Failed to store event in Table Storage: {str(e)}")
-
-# Helper function to delete inactive events every time the function is triggered
-# in real time
-def cleanup_inactive_events(current_event_keys):
-    try:
-        table_service = TableServiceClient.from_connection_string(conn_str=STORAGE_CONNECTION_STRING)
-        table_client = table_service.get_table_client(table_name=TABLE_NAME)
-
-        entities = table_client.query_entities("PartitionKey eq 'OttawaTraffic'")
-        for entity in entities:
-            if entity["RowKey"] not in current_event_keys:
-                print(f"Deleting inactive event: {entity['RowKey']}")
-                table_client.delete_entity(partition_key=entity["PartitionKey"], row_key=entity["RowKey"])
-    except Exception as e:
-        print(f"Failed to clean up inactive events: {str(e)}")
 
 @app.function_name(name="FetchTrafficEvents")
 @app.route(route="FetchTrafficEvents", auth_level=func.AuthLevel.ANONYMOUS)
@@ -182,7 +87,7 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
             # Store the current events to later ensure no duplication in Azure Table
             current_event_keys = set()
 
-            access_token = get_eda_access_token()
+            access_token = get_eda_access_token(KEYCLOAK_TOKEN_URL, CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
             if not access_token:
                 print("No access token available. Skipping EDA triggers.")
             else:
@@ -209,11 +114,7 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                         eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, timeout=10)
                         eda_response.raise_for_status()
                         print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
-                        store_event_in_table(event)
-                        # access_token = get_eda_access_token()
-                        # if not access_token:
-                        #     print("No access token available. Skipping EDA trigger.")
-                        #     continue
+                        store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
 
                         headers = {
                             "Authorization": f"Bearer {access_token}",
@@ -227,14 +128,18 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                             print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
                         except ValidationError as ve:
                             print(f"Payload validation failed: {ve.message}")
+                            break
                         except requests.exceptions.RequestException as e:
                             print(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}")
+                            break
                     except ValidationError as ve:
                         print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
+                        break
                     except requests.exceptions.RequestException as e:
                         print(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
+                        break
 
-                cleanup_inactive_events(current_event_keys)
+                cleanup_inactive_events(current_event_keys, STORAGE_CONNECTION_STRING, TABLE_NAME)
                 return func.HttpResponse(str(high_priority), status_code=200)
 
         except requests.exceptions.RequestException as e:
