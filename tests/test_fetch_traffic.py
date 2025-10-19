@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from FetchTrafficEvents import __init__ as traffic_func
+from traffic_ingestor.function_app import fetch_traffic_events
 
 # Purpose: Tests the main logic of the function.
 # Contents:
@@ -33,11 +33,12 @@ def mock_traffic_response(*args, **kwargs):
 
     return MockResponse()
 
-@patch('FetchTrafficEvents.__init__.requests.get', side_effect=mock_traffic_response)
-@patch('FetchTrafficEvents.__init__.requests.post')
+@patch('traffic_ingestor.function_app.requests.get', side_effect=mock_traffic_response)
+@patch('traffic_ingestor.function_app.requests.post')
 def test_fetch_traffic_events(mock_post, mock_get):
-    req = None  # Simulate HttpRequest if needed
-    response = traffic_func.fetch_traffic_events(req)
+    from traffic_ingestor.function_app import fetch_traffic_events
+    req = None  # Simulate HttpRequest
+    response = fetch_traffic_events(req)
     assert response.status_code == 200
     assert "Collision" in response.get_body().decode()
     mock_post.assert_called_once()

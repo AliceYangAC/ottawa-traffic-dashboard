@@ -1,6 +1,6 @@
 import pytest
 from jsonschema import validate, ValidationError
-from FetchTrafficEvents.helpers import EDA_PAYLOAD_SCHEMA
+from traffic_ingestor.function_app import fetch_traffic_events, EDA_PAYLOAD_SCHEMA
 
 
 # Purpose: Tests the payload validation logic using jsonschema.
