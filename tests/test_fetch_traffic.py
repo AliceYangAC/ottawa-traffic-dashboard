@@ -36,7 +36,7 @@ def mock_traffic_response(*args, **kwargs):
 @patch('traffic_ingestor.function_app.requests.get', side_effect=mock_traffic_response)
 @patch('traffic_ingestor.function_app.requests.post')
 def test_fetch_traffic_events(mock_post, mock_get):
-    from traffic_ingestor.function_app import fetch_traffic_events
+    # from traffic_ingestor.function_app import fetch_traffic_events
     req = None  # Simulate HttpRequest
     response = fetch_traffic_events(req)
     assert response.status_code == 200
