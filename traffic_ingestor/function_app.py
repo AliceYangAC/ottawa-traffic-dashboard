@@ -14,12 +14,6 @@ app = func.FunctionApp()
 # Later store in Azure Key Vault
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
-# KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-# CLIENT_ID = os.getenv("CLIENT_ID")
-# CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-# USERNAME = os.getenv("USERNAME")
-# PASSWORD = os.getenv("PASSWORD")
-
 TABLE_NAME = "TrafficEvents"
 
 # Retry configuration

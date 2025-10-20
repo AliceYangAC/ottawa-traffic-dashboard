@@ -1,11 +1,11 @@
 
 # Ottawa Traffic Ingestion
 
-This project is an Azure-based traffic ingestion system focused on real-time traffic events in Ottawa. It is designed to fetch, filter, and store high-priority traffic events using Azure Functions and Azure Table Storage to visualize and analyze patterns through Grafana dashboard in future integration
+This project is an Azure-based traffic ingestion system focused on real-time traffic events in Ottawa. It is designed to fetch, filter, and store high-priority traffic events using Azure Functions and Azure Table Storage to visualize and analyze patterns through Grafana dashboard in future integration.
 
 > Note: This project is no longer integrated with Nokia EDA, but future integration may be considered.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ./
@@ -17,7 +17,7 @@ This project is an Azure-based traffic ingestion system focused on real-time tra
 └── requirements.txt              # Python dependencies
 ```
 
-## 🚀 Features
+## Features
 
 - Fetches traffic data from Ottawa's public traffic API
 - Filters for high-priority and active events
@@ -25,7 +25,7 @@ This project is an Azure-based traffic ingestion system focused on real-time tra
 - Cleans up inactive events
 - Fully tested with Pytest and GitHub Actions CI/CD
 
-## 🛠 Setup Instructions
+## Setup Instructions
 
 1. **Clone the repository**
 
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 3. **Configure environment variables**
 
-Create a `.env` file in the root or use Azure App Settings:
+Create a `.env` file in the root:
 
 ```
 TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
@@ -65,6 +65,7 @@ Tests are automatically run on every push and pull request to `main` using GitHu
 
 ## Future Plans
 
+- Use Azure Logic Apps to trigger HTTP function on a schedule (e.g., every 15 minutes) & integrate with other Azure services
 - Optional integration with Nokia EDA for event-driven automation
 - Visualization dashboard using Grafana or Power BI
 - Support for additional data sources (e.g., weather, transit)
