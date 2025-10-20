@@ -34,7 +34,8 @@ def test_cleanup_inactive_events():
     mock_table_client = MagicMock()
     mock_table_client.query_entities.return_value = [
         {"PartitionKey": "OttawaTraffic", "RowKey": "123-Collision", "Status": "ACTIVE"},
-        {"PartitionKey": "OttawaTraffic", "RowKey": "456-Construction", "Status": "INACTIVE"}
+        {"PartitionKey": "OttawaTraffic", "RowKey": "456-Construction", "Status": "INACTIVE"},
+        {"PartitionKey": "OttawaTraffic", "RowKey": "789-Closure", "Status": "ACTIVE"}  # not in current_events
     ]
 
     mock_service = MagicMock()
@@ -42,7 +43,14 @@ def test_cleanup_inactive_events():
 
     TableServiceClient.from_connection_string = MagicMock(return_value=mock_service)
 
-    cleanup_inactive_events(STORAGE_CONNECTION_STRING, TABLE_NAME)
-    mock_table_client.delete_entity.assert_called_once_with(
-        partition_key="OttawaTraffic", row_key="456-Construction"
-    )
+    current_events = [
+        {"id": "123", "eventType": "Collision"},
+        {"id": "456", "eventType": "Construction"}  # This one is INACTIVE
+        # "789-Closure" is missing and should be deleted
+    ]
+
+    cleanup_inactive_events(current_events, STORAGE_CONNECTION_STRING, TABLE_NAME)
+
+    mock_table_client.delete_entity.assert_any_call(partition_key="OttawaTraffic", row_key="456-Construction")
+    mock_table_client.delete_entity.assert_any_call(partition_key="OttawaTraffic", row_key="789-Closure")
+    assert mock_table_client.delete_entity.call_count == 2

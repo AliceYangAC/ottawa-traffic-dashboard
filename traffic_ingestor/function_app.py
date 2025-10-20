@@ -3,7 +3,7 @@ import logging
 import requests
 import time
 import os
-from jsonschema import validate, ValidationError
+# from jsonschema import validate, ValidationError
 from dotenv import load_dotenv
 from helper_functions import cleanup_inactive_events, get_eda_access_token, store_event_in_table
 
@@ -26,7 +26,6 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
     attempt = 0
     while attempt < MAX_RETRIES:
         try:
-            print(f"Attempt {attempt + 1} to fetch traffic events")
             response = requests.get(TRAFFIC_URL, timeout=10)
             response.raise_for_status()
 
@@ -57,32 +56,35 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 print("Unexpected data format from traffic API")
                 return func.HttpResponse("Unexpected data format", status_code=500)
 
-            high_priority = [
-                e for e in events
-                if isinstance(e, dict) and
-                e.get("priority") == "HIGH" and
-                e.get("status") == "ACTIVE" 
-                # and is_kanata_event(e)
-            ]
+            print(f"Total events fetched: {len(events)}")
+            
+            # high_priority = [
+            #     e for e in events
+            #     if isinstance(e, dict) and
+            #     e.get("priority") == "HIGH" and
+            #     e.get("status") == "ACTIVE" 
+            #     # and is_kanata_event(e)
+            # ]
 
-            # Store the current events to later ensure no duplication in Azure Table
-            current_event_keys = set()
-
-            for event in high_priority:
+            for event in events:
                 description = event.get("message", "Unknown location")
                 event_type = event.get("eventType", "Unknown event")
-                print(f"Looping through high priority list to store {event_type} at {description}".encode('ascii', 'replace').decode())
+                status = event.get("status", "UNKNOWN")
+                # print(f"Looping through events list to store {status} {event_type} at {description}".encode('ascii', 'replace').decode())
                 try:
-                    store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
-                except ValidationError as ve:
-                    print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
-                    break
+                    if status == "ACTIVE":
+                        store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
+                    else:
+                        pass
+                # except ValidationError as ve:
+                #     print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
+                #     break
                 except requests.exceptions.RequestException as e:
                     print(f"Failed to store event for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
                     break
 
-            cleanup_inactive_events(STORAGE_CONNECTION_STRING, TABLE_NAME)
-            return func.HttpResponse(str(high_priority), status_code=200)
+            cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
+            return func.HttpResponse(str(events), status_code=200)
             
         except requests.exceptions.RequestException as e:
             logging.warning(f"Request failed: {type(e).__name__} - {str(e)}")
