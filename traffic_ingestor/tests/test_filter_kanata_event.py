@@ -1,7 +1,8 @@
 # tests/test_filter_kanata_event.py
 
-from traffic_ingestor.function_app import is_kanata_event
-
+from traffic_ingestor.helper_functions import is_kanata_event
+import sys
+print(sys.path)
 
 # Purpose: Make sure that the data flow is filtered to roads near Kanata Tech Hub
 

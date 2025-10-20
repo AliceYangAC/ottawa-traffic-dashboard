@@ -12,28 +12,15 @@ load_dotenv()
 app = func.FunctionApp()
 
 # Later store in Azure Key Vault
-EDA_WEBHOOK_URL = os.getenv("EDA_WEBHOOK_URL")
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
-KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
-CLIENT_ID = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
+# KEYCLOAK_TOKEN_URL = os.getenv("KEYCLOAK_TOKEN_URL")
+# CLIENT_ID = os.getenv("CLIENT_ID")
+# CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+# USERNAME = os.getenv("USERNAME")
+# PASSWORD = os.getenv("PASSWORD")
 
 TABLE_NAME = "TrafficEvents"
-
-# EDA_PAYLOAD_SCHEMA = {
-#     "type": "object",
-#     "properties": {
-#         "eventType": {"type": "string"},
-#         "location": {"type": "string"},
-#         "timestamp": {"type": "string"},
-#         "priority": {"type": "string"},
-#         "status": {"type": "string"}
-#     },
-#     "required": ["eventType", "location", "timestamp", "priority", "status"]
-# }
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -87,50 +74,12 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
             # Store the current events to later ensure no duplication in Azure Table
             current_event_keys = set()
 
-            # Removing EDA from workflow
-            # access_token = get_eda_access_token(KEYCLOAK_TOKEN_URL, CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD)
-            # if not access_token:
-            #     print("No access token available. Skipping EDA triggers.")
-            # else:
-            for event in events:
+            for event in high_priority:
                 description = event.get("message", "Unknown location")
                 event_type = event.get("eventType", "Unknown event")
-
                 print(f"Looping through high priority list to store {event_type} at {description}".encode('ascii', 'replace').decode())
-                # payload = {
-                #     "eventType": event_type,
-                #     "location": description,
-                #     "timestamp": event.get("startTime", ""),
-                #     "priority": event.get("priority", ""),
-                #     "status": event.get("status", "")
-                # }
-                
-                # Generate RowKey
-                # start_time = event.get("startTime", "unknown")
-                # row_key = f"{event.get('eventType', 'UnknownEvent')}-{start_time.replace(':', '').replace('-', '').replace('T', '')}"
-                # current_event_keys.add(row_key)
-                
                 try:
-                    # validate(instance=payload, schema=EDA_PAYLOAD_SCHEMA)
-                    # eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, timeout=10)
-                    # eda_response.raise_for_status()
-                    # print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
                     store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
-                    # headers = {
-                    #     "Authorization": f"Bearer {access_token}",
-                    #     "Content-Type": "application/json"
-                    # }
-                    # try:
-                    #     validate(instance=payload, schema=EDA_PAYLOAD_SCHEMA)
-                    #     eda_response = requests.post(EDA_WEBHOOK_URL, json=payload, headers=headers, timeout=10)
-                    #     eda_response.raise_for_status()
-                    #     print(f"EDA triggered successfully for {event_type} at {description}: {eda_response.status_code}")
-                    # except ValidationError as ve:
-                    #     print(f"Payload validation failed: {ve.message}")
-                    #     break
-                    # except requests.exceptions.RequestException as e:
-                    #     print(f"Failed to trigger EDA for {event_type} at {description}: {str(e)}")
-                    #     break
                 except ValidationError as ve:
                     print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
                     break
@@ -138,9 +87,9 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                     print(f"Failed to store event for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
                     break
 
-                cleanup_inactive_events(STORAGE_CONNECTION_STRING, TABLE_NAME)
-                return func.HttpResponse(str(high_priority), status_code=200)
-
+            cleanup_inactive_events(STORAGE_CONNECTION_STRING, TABLE_NAME)
+            return func.HttpResponse(str(high_priority), status_code=200)
+            
         except requests.exceptions.RequestException as e:
             logging.warning(f"Request failed: {type(e).__name__} - {str(e)}")
             attempt += 1
