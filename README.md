@@ -70,10 +70,38 @@ pip install -r requirements.txt
 
 3. **Configure environment variables**
 
-Each function app (`traffic_ingestor` and `traffic_refresher`) should have its own `.env` file with storage connection strings and API URLs. For local development, you can simplify by using:
+Each function app (`traffic_ingestor` and `traffic_refresher`) should have its own `.env` file with storage connection strings and API URLs. 
+```ini
+# traffic_ingestor
+
+# Azurite connection string for testing
+STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
+TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
+FUNCTION_URL=https://your-function-url/api/FetchTrafficEvents
+
+# Dev: traffic_refresher's Event Grid webhook endpoint
+LOCAL_DEV=true
+REFRESHER_URL=http://traffic_refresher:80/runtime/webhooks/EventGrid?functionName=TrafficRefresher
+
+# Production: Azure Event Hub
+EVENTGRID_TOPIC_ENDPOINT=""
+EVENTGRID_TOPIC_KEY=""
+
+# Docker containers?
+DOTNET_RUNNING_IN_CONTAINER=false
+```
 
 ```ini
+# traffic_refresher
+
+# Azurite connection string for testing
 STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
+# API url for Ottawa's traffic event stream
+TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
+OUTPUT_CONTAINER="visualizations"
+LOCAL_DEV=true
+# Docker containers?
+DOTNET_RUNNING_IN_CONTAINER=false
 ```
 
 instead of the long Azurite connection string.
@@ -89,15 +117,21 @@ instead of the long Azurite connection string.
   - **Azurite: Start Blob Service**  
   - **Azurite: Start Queue Service**  
 
-### 2. Ensure `PYTHONPATH` is set
+### 2. Ensure `PYTHONPATH` and `AzureWebJobsStorage` is set
 To make imports consistent between pytest and `func start`, set `PYTHONPATH` to the repo root (`../`) for each function app. You can do this with:
-
+UseDevelopmentStorage=true
 ```bash
 cd traffic_ingestor
-func settings add PYTHONPATH "../"
+func settings add PYTHONPATH 
+../
+func settings add AzureWebJobsStorage
+UseDevelopmentStorage=true
 
 cd ../traffic_refresher
-func settings add PYTHONPATH "../"
+func settings add PYTHONPATH 
+../
+func settings add AzureWebJobsStorage
+UseDevelopmentStorage=true
 ```
 
 This adds the setting into each app’s `local.settings.json`.
