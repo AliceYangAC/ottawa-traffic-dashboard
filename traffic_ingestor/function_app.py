@@ -3,11 +3,12 @@ import logging
 import requests
 import time
 import os
-# from jsonschema import validate, ValidationError
 from dotenv import load_dotenv
-from helper_functions import cleanup_inactive_events, get_eda_access_token, store_event_in_table
+from traffic_ingestor.helper_functions import cleanup_inactive_events, publish_event, store_event_in_table
 
-load_dotenv()
+# Explicitly load the .env file from this folder
+BASE_DIR = os.path.dirname(__file__)
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 app = func.FunctionApp()
 
@@ -15,6 +16,10 @@ app = func.FunctionApp()
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
 TABLE_NAME = "TrafficEvents"
+EVENT_GRID_TOPIC_ENDPOINT = os.getenv("EVENT_GRID_TOPIC_ENDPOINT") 
+EVENT_GRID_TOPIC_KEY = os.getenv("EVENT_GRID_TOPIC_KEY") 
+LOCAL_DEV = os.getenv("LOCAL_DEV", "false").lower() == "true"
+REFRESHER_URL = os.getenv("REFRESHER_URL") 
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -57,33 +62,24 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 return func.HttpResponse("Unexpected data format", status_code=500)
 
             print(f"Total events fetched: {len(events)}")
-            
-            # high_priority = [
-            #     e for e in events
-            #     if isinstance(e, dict) and
-            #     e.get("priority") == "HIGH" and
-            #     e.get("status") == "ACTIVE" 
-            #     # and is_kanata_event(e)
-            # ]
 
             for event in events:
                 description = event.get("message", "Unknown location")
                 event_type = event.get("eventType", "Unknown event")
                 status = event.get("status", "UNKNOWN")
-                # print(f"Looping through events list to store {status} {event_type} at {description}".encode('ascii', 'replace').decode())
+                
                 try:
                     if status == "ACTIVE":
                         store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
                     else:
                         pass
-                # except ValidationError as ve:
-                #     print(f"Payload validation failed: {ve.message}".encode('ascii', 'replace').decode())
-                #     break
                 except requests.exceptions.RequestException as e:
                     print(f"Failed to store event for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
                     break
 
             cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
+            # Publish event to trigger traffic_refresher
+            publish_event(EVENT_GRID_TOPIC_ENDPOINT, EVENT_GRID_TOPIC_KEY, LOCAL_DEV, REFRESHER_URL)
             return func.HttpResponse(str(events), status_code=200)
             
         except requests.exceptions.RequestException as e:

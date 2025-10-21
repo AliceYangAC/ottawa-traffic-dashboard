@@ -1,0 +1,7 @@
+azure-functions
+python-dotenv
+pandas
+plotly
+kaleido
+azure-data-tables
+azure-storage-blob

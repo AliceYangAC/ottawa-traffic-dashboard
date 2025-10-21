@@ -1,9 +1,12 @@
 from azure.data.tables import TableServiceClient
+from helper_functions.create_table import ensure_table_exists
 # Helper function to store new events in Azure Table Storage, delete them if no longer active,
 # and avoid duplicating existing events
 def store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME):
     try:
-        # print("Checking to see if I need to or can store this event in the function:", event)
+        # Ensure table exists
+        ensure_table_exists(STORAGE_CONNECTION_STRING, TABLE_NAME)
+        
         table_service = TableServiceClient.from_connection_string(conn_str=STORAGE_CONNECTION_STRING)
         table_client = table_service.get_table_client(table_name=TABLE_NAME)
 

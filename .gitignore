@@ -1,1 +1,7 @@
 .env
+__*
+.vscode
+.*
+traffic_hotspots*
+*docker*
+docker-compose.yaml

@@ -1,0 +1,6 @@
+azure-functions
+python-dotenv
+requests
+azure-data-tables
+azure-eventgrid
+azure-core

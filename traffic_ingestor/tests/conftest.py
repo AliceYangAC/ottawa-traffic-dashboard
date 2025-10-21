@@ -1,5 +1,18 @@
 import pytest
+import os
+from dotenv import load_dotenv, find_dotenv
+import sys
 from unittest.mock import MagicMock, patch
+
+# --- Ensure project root is on sys.path ---
+# This prevents import collisions (e.g. between traffic_ingestor.helper_functions
+# and traffic_refresher.helper_functions).
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# --- Load environment variables from nearest .env ---
+load_dotenv(find_dotenv())
 
 @pytest.fixture
 def mock_traffic_response():
