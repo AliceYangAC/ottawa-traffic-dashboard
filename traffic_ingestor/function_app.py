@@ -16,10 +16,6 @@ app = func.FunctionApp()
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
 TABLE_NAME = "TrafficEvents"
-EVENT_GRID_TOPIC_ENDPOINT = os.getenv("EVENT_GRID_TOPIC_ENDPOINT") 
-EVENT_GRID_TOPIC_KEY = os.getenv("EVENT_GRID_TOPIC_KEY") 
-LOCAL_DEV = os.getenv("LOCAL_DEV", "false").lower() == "true"
-REFRESHER_URL = os.getenv("REFRESHER_URL") 
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -79,7 +75,7 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
 
             cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
             # Publish event to trigger traffic_refresher
-            publish_event(EVENT_GRID_TOPIC_ENDPOINT, EVENT_GRID_TOPIC_KEY, LOCAL_DEV, REFRESHER_URL)
+            publish_event()
             return func.HttpResponse(str(events), status_code=200)
             
         except requests.exceptions.RequestException as e:

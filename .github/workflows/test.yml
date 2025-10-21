@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Dummy values so tests don’t crash on missing env vars
-      EVENTGRID_TOPIC_ENDPOINT: "http://fake-endpoint"
-      EVENTGRID_TOPIC_KEY: "dummy-key"
       STORAGE_CONNECTION_STRING: "UseDevelopmentStorage=true"
       AzureWebJobsStorage: "UseDevelopmentStorage=true"
       PYTHONPATH: "."

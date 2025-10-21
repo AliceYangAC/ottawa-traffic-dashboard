@@ -74,21 +74,9 @@ Each function app (`traffic_ingestor` and `traffic_refresher`) should have its o
 ```ini
 # traffic_ingestor
 
-# Azurite connection string for testing
 STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
 TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
 FUNCTION_URL=https://your-function-url/api/FetchTrafficEvents
-
-# Dev: traffic_refresher's Event Grid webhook endpoint
-LOCAL_DEV=true
-REFRESHER_URL=http://traffic_refresher:80/runtime/webhooks/EventGrid?functionName=TrafficRefresher
-
-# Production: Azure Event Hub
-EVENTGRID_TOPIC_ENDPOINT=""
-EVENTGRID_TOPIC_KEY=""
-
-# Docker containers?
-DOTNET_RUNNING_IN_CONTAINER=false
 ```
 
 ```ini
@@ -99,12 +87,9 @@ STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
 # API url for Ottawa's traffic event stream
 TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
 OUTPUT_CONTAINER="visualizations"
-LOCAL_DEV=true
-# Docker containers?
-DOTNET_RUNNING_IN_CONTAINER=false
-```
 
-instead of the long Azurite connection string.
+
+```
 
 ---
 

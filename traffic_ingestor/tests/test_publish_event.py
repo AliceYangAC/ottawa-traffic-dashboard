@@ -1,29 +1,17 @@
-import pytest
-from unittest.mock import patch
-from traffic_ingestor.helper_functions import publish_event
+# traffic_ingestor/tests/test_function_app_publish.py
+from unittest.mock import patch, MagicMock
+import traffic_ingestor.function_app as function_app
 
-@pytest.mark.parametrize(
-    "in_docker, expected_url",
-    [
-        (False, "127.0.0.1:7072"),       # host machine, override to localhost
-        (True, "http://fake-refresher"), # inside Docker, keep provided URL
-    ],
-)
-def test_publish_event_local_dev(in_docker, expected_url):
-    with patch("traffic_ingestor.helper_functions.publish_event.requests.post") as mock_post, \
-         patch("os.path.exists") as mock_exists:
+# Patch publish_event as imported in function_app
+@patch("traffic_ingestor.function_app.publish_event")
+def test_publish_event(mock_publish):
+    # Arrange: make publish_event a no-op
+    mock_publish.return_value = None
 
-        # Simulate Docker presence/absence
-        mock_exists.return_value = in_docker
-        mock_post.return_value.status_code = 200
+    # Act: call the function under test
+    response = function_app.fetch_traffic_events(None)
 
-        publish_event(
-            EVENTGRID_TOPIC_ENDPOINT="unused",
-            EVENTGRID_TOPIC_KEY="unused",
-            LOCAL_DEV=True,
-            REFRESHER_URL="http://fake-refresher"
-        )
-
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
-        assert expected_url in args[0]
+    # Assert: publish_event was called once
+    mock_publish.assert_called_once()
+    # And the function returned an HTTP response
+    assert response.status_code == 200
