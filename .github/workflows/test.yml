@@ -16,7 +16,6 @@ jobs:
       STORAGE_CONNECTION_STRING: "UseDevelopmentStorage=true"
       AzureWebJobsStorage: "UseDevelopmentStorage=true"
       PYTHONPATH: "."
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -29,11 +28,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Root requirements
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Function-specific requirements
           if [ -f traffic_ingestor/requirements.txt ]; then pip install -r traffic_ingestor/requirements.txt; fi
           if [ -f traffic_refresher/requirements.txt ]; then pip install -r traffic_refresher/requirements.txt; fi
 
       - name: Run tests
-        run: pytest -v
+        run: |
+          pytest -v
