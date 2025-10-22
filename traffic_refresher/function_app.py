@@ -6,7 +6,7 @@ import plotly.express as px
 from dotenv import load_dotenv
 from azure.data.tables import TableServiceClient
 from azure.storage.blob import BlobServiceClient
-from traffic_refresher.helper_functions import extract_coords
+from traffic_refresher.helper_functions.extract_coords_helper import extract_coords
 
 
 # Explicitly load the .env file from this folder
