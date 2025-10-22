@@ -45,11 +45,22 @@ def test_fetch_traffic_events_successful_flow_with_new_data():
 
 
 def test_fetch_traffic_events_skips_publish_if_no_new_data():
-    with patch("traffic_ingestor.function_app.has_new_events", return_value=False) as mock_has_new, \
+    fake_events = [
+        {"id": "123", "eventType": "Collision", "message": "Accident on Main St", "status": "ACTIVE"},
+        {"id": "456", "eventType": "Construction", "message": "Roadwork on Bank St", "status": "INACTIVE"}
+    ]
+    fake_response = MagicMock()
+    fake_response.status_code = 200
+    fake_response.text = str(fake_events)
+    fake_response.json.return_value = {"events": fake_events}
+
+    with patch("traffic_ingestor.function_app.TRAFFIC_URL", "http://mock.api"), \
+         patch("traffic_ingestor.function_app.requests.get", return_value=fake_response), \
+         patch("traffic_ingestor.function_app.has_new_events", return_value=False) as mock_has_new, \
          patch("traffic_ingestor.function_app.publish_event") as mock_publish:
 
         dummy_timer = MagicMock(spec=func.TimerRequest)
         fetch_traffic_events(dummy_timer)
 
-        mock_has_new.assert_called_once()
+        mock_has_new.assert_called_once_with(fake_events, os.getenv("STORAGE_CONNECTION_STRING"), "TrafficMetadata")
         mock_publish.assert_not_called()
