@@ -1,14 +1,14 @@
 # traffic_ingestor/tests/test_publish_event.py
 import pytest
 from unittest.mock import patch, MagicMock
-from traffic_ingestor.helper_functions.publish_event import publish_event
+from traffic_ingestor.helper_functions.publish_event_helper import publish_event
 
 def test_publish_event_posts_to_refresher():
     # Arrange: mock response object
     mock_response = MagicMock()
     mock_response.status_code = 202
 
-    with patch("traffic_ingestor.helper_functions.publish_event.requests.post", return_value=mock_response) as mock_post:
+    with patch("traffic_ingestor.helper_functions.publish_event_helper.requests.post", return_value=mock_response) as mock_post:
         # Act
         publish_event()
 

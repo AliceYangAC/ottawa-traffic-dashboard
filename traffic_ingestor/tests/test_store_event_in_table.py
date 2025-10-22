@@ -1,7 +1,7 @@
 # traffic_ingestor/tests/test_store_event_in_table.py
 import pytest
 from unittest.mock import patch, MagicMock
-from traffic_ingestor.helper_functions import store_event_in_table
+from traffic_ingestor.helper_functions.store_event_in_table_helper import store_event_in_table
 
 def test_store_event_inserts_new_entity():
     # --- Fake event ---
@@ -15,8 +15,8 @@ def test_store_event_inserts_new_entity():
         "geodata": {"coordinates": "[-75.69, 45.40]"}
     }
 
-    with patch("traffic_ingestor.helper_functions.store_event_in_table.ensure_table_exists") as mock_ensure, \
-         patch("traffic_ingestor.helper_functions.store_event_in_table.TableServiceClient") as mock_tsc:
+    with patch("traffic_ingestor.helper_functions.store_event_in_table_helper.ensure_table_exists") as mock_ensure, \
+         patch("traffic_ingestor.helper_functions.store_event_in_table_helper.TableServiceClient") as mock_tsc:
 
         # Mock table client 
         mock_table_client = MagicMock()

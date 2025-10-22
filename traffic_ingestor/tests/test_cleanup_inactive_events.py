@@ -1,7 +1,7 @@
 # traffic_ingestor/tests/test_cleanup_inactive_events.py
 import pytest
 from unittest.mock import patch, MagicMock
-from traffic_ingestor.helper_functions import cleanup_inactive_events
+from traffic_ingestor.helper_functions.cleanup_inactive_events_helper import cleanup_inactive_events
 
 def test_cleanup_inactive_events_deletes_outdated_entities():
     # Mock incoming events from API
@@ -18,7 +18,7 @@ def test_cleanup_inactive_events_deletes_outdated_entities():
         {"PartitionKey": "OttawaTraffic", "RowKey": "456-Construction", "Status": "INACTIVE"},  # should be deleted
     ]
 
-    with patch("traffic_ingestor.helper_functions.cleanup_inactive_events.TableServiceClient") as mock_tsc:
+    with patch("traffic_ingestor.helper_functions.cleanup_inactive_events_helper.TableServiceClient") as mock_tsc:
         # Mock table client and its query/delete methods
         mock_table_client = MagicMock()
         mock_table_client.query_entities.return_value = stored_entities

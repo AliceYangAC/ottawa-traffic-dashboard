@@ -1,5 +1,5 @@
 from azure.data.tables import TableServiceClient
-from helper_functions.create_table import ensure_table_exists
+from traffic_ingestor.helper_functions.ensure_table_exists_helper import ensure_table_exists
 # Helper function to store new events in Azure Table Storage, delete them if no longer active,
 # and avoid duplicating existing events
 def store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME):
