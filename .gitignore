@@ -5,3 +5,5 @@ __*
 traffic_hotspots*
 *docker*
 docker-compose.yaml
+Azurite*
+.venv
