@@ -4,7 +4,7 @@ import requests
 import time
 import os
 from dotenv import load_dotenv
-from traffic_ingestor.helper_functions import cleanup_inactive_events, publish_event, store_event_in_table
+from traffic_ingestor.helper_functions import ensure_table_exists, cleanup_inactive_events, publish_event, store_event_in_table, has_new_events, update_hash, get_last_hash
 
 # Explicitly load the .env file from this folder
 BASE_DIR = os.path.dirname(__file__)
@@ -22,8 +22,10 @@ MAX_RETRIES = 3
 BACKOFF_SECONDS = 5
 
 @app.function_name(name="FetchTrafficEvents")
-@app.route(route="FetchTrafficEvents", auth_level=func.AuthLevel.ANONYMOUS)
-def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
+@app.schedule(schedule="*/5 * * * *", arg_name="timer", run_on_startup=True, use_monitor=False)
+def fetch_traffic_events(timer: func.TimerRequest) -> None:
+# @app.route(route="FetchTrafficEvents", auth_level=func.AuthLevel.ANONYMOUS)
+# def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
     attempt = 0
     while attempt < MAX_RETRIES:
         try:
@@ -55,9 +57,13 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 events = data
             else:
                 print("Unexpected data format from traffic API")
-                return func.HttpResponse("Unexpected data format", status_code=500)
+                return
+                # return func.HttpResponse("Unexpected data format", status_code=500)
 
             print(f"Total events fetched: {len(events)}")
+            if not has_new_events(events, STORAGE_CONNECTION_STRING, "TrafficMetadata"):
+                print("No new traffic events detected. Skipping Event Grid publish.")
+                return
 
             for event in events:
                 description = event.get("message", "Unknown location")
@@ -76,7 +82,9 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
             cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
             # Publish event to trigger traffic_refresher
             publish_event()
-            return func.HttpResponse(str(events), status_code=200)
+            print("Ingestion complete.")
+            return
+            # return func.HttpResponse(str(events), status_code=200)
             
         except requests.exceptions.RequestException as e:
             logging.warning(f"Request failed: {type(e).__name__} - {str(e)}")
