@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-import traffic_refresher.function_app as function_app
+from traffic_refresher.function_app import traffic_refresher
 
 class DummyEvent:
     def get_json(self):
@@ -37,7 +37,7 @@ def test_traffic_refresher_uploads_blob():
         mock_px.return_value = mock_fig
 
         # Run the function
-        function_app.traffic_refresher(DummyEvent())
+        traffic_refresher(DummyEvent())
 
         # Assert: Plotly was called with expected args
         mock_px.assert_called_once()
