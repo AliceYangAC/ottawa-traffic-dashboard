@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from traffic_refresher import function_app
+import traffic_refresher.function_app as function_app
 
 class DummyEvent:
     def get_json(self):
