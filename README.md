@@ -46,7 +46,7 @@ This project is an **Azure Functions–based system** for ingesting and visualiz
   - Functions run locally with **Azure Functions Core Tools** (`func start`)  
 
 - **Testing**  
-  - Unit tests with mocks for ingestion and refresher logic  
+  - Unit & integration tests with mocks for ingestion and refresher logic  
   - CI/CD with GitHub Actions  
 
 ---
@@ -190,10 +190,33 @@ This script connects to Azurite, downloads `traffic_hotspots.png`, and saves it 
 
 ---
 
-## CI/CD with GitHub Actions
+Absolutely — here’s an expanded and more informative version of that section for your README:
 
-- All tests run automatically on push and pull requests to `main`.  
-- Workflow includes linting & unit tests against Azurite.  
+---
+
+### **Testing and CI/CD**
+
+- **Unit Tests with Mocks**  
+  Each helper function in both the ingestion and refresher pipelines is covered by isolated unit tests using `pytest` and `unittest.mock`. These tests:
+  - Mock Azure SDK clients (`TableServiceClient`, `BlobServiceClient`, `EventGridPublisherClient`) to avoid real cloud calls.
+  - Validate logic for event storage, cleanup, publishing, and coordinate parsing.
+  - Ensure robustness against malformed inputs and edge cases.
+
+- **Integration Tests for Function Apps**  
+  The main Azure Functions (`fetch_traffic_events` and `traffic_refresher`) are tested with mocked dependencies to verify orchestration logic. These tests:
+  - Simulate traffic API responses and Event Grid triggers.
+  - Confirm correct invocation of helper functions.
+  - Validate side effects like blob uploads and HTTP responses.
+
+- **CI/CD with GitHub Actions**  
+  GitHub Actions automates testing and deployment:
+  - On every push or pull request to `main`, workflows run all unit and integration tests.
+  - Deployments are gated by test success using `needs: test` in the workflow YAML.
+  - Branch protection rules ensure that code cannot be merged unless all tests pass.
+
+---
+
+Would you like me to generate a badge block for test status and deployment workflows to include at the top of your README?
 
 ---
 
