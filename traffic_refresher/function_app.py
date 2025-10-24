@@ -7,11 +7,12 @@ from dotenv import load_dotenv
 from azure.data.tables import TableServiceClient
 from azure.storage.blob import BlobServiceClient
 from traffic_refresher.helper_functions.extract_coords_helper import extract_coords
-
+import json
 
 # Explicitly load the .env file from this folder
 BASE_DIR = os.path.dirname(__file__)
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+#print("Loaded connection string:", repr(os.getenv("STORAGE_CONNECTION_STRING")))
 
 app = func.FunctionApp()
 
@@ -32,7 +33,9 @@ def traffic_refresher(event: func.EventGridEvent):
     # Query recent entities
     entities = table_client.list_entities(results_per_page=200)
     rows = [dict(e) for e in entities]
-    print("Traffic events in Azure Tables:", rows)
+    # safe_rows = json.dumps(rows, ensure_ascii=True)
+    # print("Traffic events in Azure Tables:", safe_rows)
+
     if not rows:
         print("No traffic events found in Table Storage.")
         return
@@ -76,6 +79,12 @@ def traffic_refresher(event: func.EventGridEvent):
     # Write image to memory and upload
     import io
     img_bytes = fig.to_image(format="png", engine="kaleido")
+    # Ensure container exists
+    container_client = blob_service.get_container_client(OUTPUT_CONTAINER)
+    try:
+        container_client.get_container_properties()
+    except Exception:
+        container_client.create_container()
     blob_client.upload_blob(img_bytes, overwrite=True)
 
     print("Hotspot map written to Blob Storage.")
