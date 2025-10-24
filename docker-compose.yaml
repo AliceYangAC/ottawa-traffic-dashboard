@@ -23,7 +23,7 @@ services:
     depends_on:
       - azurite
     ports:
-      - "7072:80"   # function host for ingestor
+      - "7071:80"   # function host for ingestor
 
   traffic_refresher:
     build:
@@ -36,7 +36,7 @@ services:
     depends_on:
       - azurite
     ports:
-      - "7073:80"   # function host for refresher
+      - "7072:80"   # function host for refresher
 
 volumes:
   azurite_data:

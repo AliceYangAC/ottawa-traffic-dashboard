@@ -5,3 +5,4 @@ plotly
 kaleido
 azure-data-tables
 azure-storage-blob
+json

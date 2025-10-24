@@ -22,10 +22,10 @@ MAX_RETRIES = 3
 BACKOFF_SECONDS = 5
 
 @app.function_name(name="FetchTrafficEvents")
-@app.schedule(schedule="*/5 * * * *", arg_name="timer", run_on_startup=True, use_monitor=False)
-def fetch_traffic_events(timer: func.TimerRequest) -> None:
-# @app.route(route="FetchTrafficEvents", auth_level=func.AuthLevel.ANONYMOUS)
-# def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
+# @app.schedule(schedule="*/5 * * * *", arg_name="timer", run_on_startup=True, use_monitor=False)
+# def fetch_traffic_events(timer: func.TimerRequest) -> None:
+@app.route(route="FetchTrafficEvents", auth_level=func.AuthLevel.ANONYMOUS)
+def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
     attempt = 0
     while attempt < MAX_RETRIES:
         try:
@@ -62,29 +62,31 @@ def fetch_traffic_events(timer: func.TimerRequest) -> None:
 
             print(f"Total events fetched: {len(events)}")
             if not has_new_events(events, STORAGE_CONNECTION_STRING, "TrafficMetadata"):
-                print("No new traffic events detected. Skipping Event Grid publish.")
-                return
+                #print("No new traffic events detected. Skipping Event Grid publish.")
+                #return
+                return func.HttpResponse("No new traffic events detected. Skipping Event Grid publish.", status_code=200)
 
-            for event in events:
-                description = event.get("message", "Unknown location")
-                event_type = event.get("eventType", "Unknown event")
-                status = event.get("status", "UNKNOWN")
-                
-                try:
-                    if status == "ACTIVE":
-                        store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
-                    else:
-                        pass
-                except requests.exceptions.RequestException as e:
-                    print(f"Failed to store event for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
-                    break
+            else: 
+                for event in events:
+                    description = event.get("message", "Unknown location")
+                    event_type = event.get("eventType", "Unknown event")
+                    status = event.get("status", "UNKNOWN")
+                    
+                    try:
+                        if status == "ACTIVE":
+                            store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
+                        else:
+                            pass
+                    except requests.exceptions.RequestException as e:
+                        print(f"Failed to store event for {event_type} at {description}: {str(e)}".encode('ascii', 'replace').decode())
+                        break
 
-            cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
-            # Publish event to trigger traffic_refresher
-            publish_event()
-            print("Ingestion complete.")
-            return
-            # return func.HttpResponse(str(events), status_code=200)
+                cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
+                # Publish event to trigger traffic_refresher
+                publish_event()
+                print("Ingestion complete.")
+                #return
+                return func.HttpResponse(str(events), status_code=200)
             
         except requests.exceptions.RequestException as e:
             logging.warning(f"Request failed: {type(e).__name__} - {str(e)}")

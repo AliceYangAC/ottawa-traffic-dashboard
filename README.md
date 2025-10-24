@@ -74,21 +74,23 @@ Each function app (`traffic_ingestor` and `traffic_refresher`) should have its o
 ```ini
 # traffic_ingestor
 
-STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
+# Azurite connection string for testing
+STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;
 TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
-FUNCTION_URL=https://your-function-url/api/FetchTrafficEvents
 ```
 
 ```ini
 # traffic_refresher
 
 # Azurite connection string for testing
-STORAGE_CONNECTION_STRING=UseDevelopmentStorage=true
+STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;
 # API url for Ottawa's traffic event stream
-TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
 OUTPUT_CONTAINER="visualizations"
+```
 
-
+4. Install Azurite CLI (for automated scripts; optional otherwise):
+``` bash
+npm install -g azurite
 ```
 
 ---
@@ -102,37 +104,30 @@ OUTPUT_CONTAINER="visualizations"
   - **Azurite: Start Blob Service**  
   - **Azurite: Start Queue Service**  
 
-### 2. Ensure `PYTHONPATH` and `AzureWebJobsStorage` is set
+### 2. Ensure `PYTHONPATH` is set:
 To make imports consistent between pytest and `func start`, set `PYTHONPATH` to the repo root (`../`) for each function app. You can do this with:
-UseDevelopmentStorage=true
 ```bash
 cd traffic_ingestor
 func settings add PYTHONPATH 
 ../
-func settings add AzureWebJobsStorage
-UseDevelopmentStorage=true
 
 cd ../traffic_refresher
 func settings add PYTHONPATH 
 ../
-func settings add AzureWebJobsStorage
-UseDevelopmentStorage=true
 ```
 
 This adds the setting into each app’s `local.settings.json`.
 
-### 3. Run the Functions
-- Start the **ingestor** (default port 7071):
-  ```bash
-  cd traffic_ingestor
-  func start
-  ```
-- Start the **refresher** on a different port (e.g. 7072):
-  ```bash
-  cd traffic_refresher
-  func start -p 7072
-  ```
-
+### 3. Run the Functions from root:
+Linux
+```bash
+chmod +x run.sh
+./run.sh
+```
+Windows
+```bash
+.\run.ps1
+```
 ⚠️ Reminder: You must run the refresher on a different port than the ingestor, otherwise the second host will fail to bind.
 
 ---

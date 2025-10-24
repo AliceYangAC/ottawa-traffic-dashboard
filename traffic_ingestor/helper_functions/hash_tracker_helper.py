@@ -30,7 +30,11 @@ def has_new_events(events, connection_string, table_name):
     payload = json.dumps(events, sort_keys=True)
     current_hash = hashlib.sha256(payload.encode()).hexdigest()
     last_hash = get_last_hash(connection_string, table_name)
-    if current_hash != last_hash:
+
+    print(f"[Hash Check] Current: {current_hash}, Last: {last_hash}")
+
+    if not last_hash or current_hash != last_hash:
         update_hash(connection_string, table_name, current_hash)
         return True
     return False
+
