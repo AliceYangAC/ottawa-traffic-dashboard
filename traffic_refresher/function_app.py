@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from azure.data.tables import TableServiceClient
 from azure.storage.blob import BlobServiceClient
 from traffic_refresher.helper_functions.extract_coords_helper import extract_coords
+import requests
 import json
 
 # Explicitly load the .env file from this folder
@@ -81,10 +82,19 @@ def traffic_refresher(event: func.EventGridEvent):
     img_bytes = fig.to_image(format="png", engine="kaleido")
     # Ensure container exists
     container_client = blob_service.get_container_client(OUTPUT_CONTAINER)
+    
     try:
         container_client.get_container_properties()
     except Exception:
         container_client.create_container()
     blob_client.upload_blob(img_bytes, overwrite=True)
 
-    print("Hotspot map written to Blob Storage.")
+    try:
+        payload = df.to_dict(orient="records")
+        print("Payload to be broadcasted:", len(payload))
+        requests.post("http://localhost:8000/broadcast", json={"events": payload})
+        print("Broadcasted traffic events to dashboard.")
+    except Exception as e:
+        logging.warning(f"Failed to broadcast: {e}")
+
+    # print("Hotspot map written to Blob Storage.")

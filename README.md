@@ -97,14 +97,7 @@ npm install -g azurite
 
 ## Running Locally
 
-### 1. Start Azurite in VS Code
-- Install the **Azurite** extension in VS Code.  
-- Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), then run:  
-  - **Azurite: Start Table Service**  
-  - **Azurite: Start Blob Service**  
-  - **Azurite: Start Queue Service**  
-
-### 2. Ensure `PYTHONPATH` is set:
+### 1. Ensure `PYTHONPATH` is set:
 To make imports consistent between pytest and `func start`, set `PYTHONPATH` to the repo root (`../`) for each function app. You can do this with:
 ```bash
 cd traffic_ingestor
@@ -118,18 +111,12 @@ func settings add PYTHONPATH
 
 This adds the setting into each app’s `local.settings.json`.
 
-### 3. Run the Functions from root:
+### 2. Run the Functions from root:
 Linux
 ```bash
 chmod +x run.sh
 ./run.sh
 ```
-Windows
-```bash
-.\run.ps1
-```
-⚠️ Reminder: You must run the refresher on a different port than the ingestor, otherwise the second host will fail to bind.
-
 ---
 
 ## Testing the Functions
@@ -146,23 +133,12 @@ At the same time, the ingestion function also **simulates an Event Grid event**,
 
 ---
 
-### 2. Automatic refresher trigger
+### 2. Automatic refresher trigger (edit this for Dash later)
 When the refresher is triggered by the simulated Event Grid event, it will:
 - Read the newly populated events from the `TrafficEvents` table.  
 - Parse and validate coordinates.  
 - Generate a density map of active traffic events.  
 - Write the visualization (`traffic_hotspots.png`) into the `visualizations` container in Azurite Blob Storage.
-
----
-
-### 3. Download the visualization
-To pull the generated PNG down into your project root, run the provided helper script:
-
-```bash
-python traffic_refresher/scripts/check_visualizations.py
-```
-
-This script connects to Azurite, downloads `traffic_hotspots.png`, and saves it locally so you can open and inspect the visualization.
 
 ---
 
@@ -182,10 +158,6 @@ This script connects to Azurite, downloads `traffic_hotspots.png`, and saves it 
   ```bash
   az storage blob download --connection-string "UseDevelopmentStorage=true" --container-name visualizations --name traffic_hotspots.png --file hotspot.png
   ```
-
----
-
-Absolutely — here’s an expanded and more informative version of that section for your README:
 
 ---
 
@@ -211,17 +183,12 @@ Absolutely — here’s an expanded and more informative version of that section
 
 ---
 
-Would you like me to generate a badge block for test status and deployment workflows to include at the top of your README?
-
----
-
 ## Future Plans
 
 - Scheduled ingestion with Azure Logic Apps  
 - Visualization dashboards in Grafana or Power BI  
 - Integration tests for E2E testing  
 - Support for additional data sources (e.g., weather, transit)  
-- Optional integration with Nokia EDA for event-driven automation  
 
 ---
 
