@@ -1,39 +1,32 @@
-# traffic_ingestor/tests/test_store_event_in_table.py
 import pytest
 from unittest.mock import patch, MagicMock
 from traffic_ingestor.helper_functions.store_event_in_table_helper import store_event_in_table
 
-def test_store_event_inserts_new_entity():
-    # --- Fake event ---
-    event = {
-        "id": "123",
-        "eventType": "Collision",
-        "schedule": [{"startDateTime": "2025-10-21T10:00:00Z", "endDateTime": "2025-10-21T12:00:00Z"}],
-        "message": "Kanata Ave & March Rd",
-        "priority": "HIGH",
-        "status": "ACTIVE",
-        "geodata": {"coordinates": "[-75.69, 45.40]"}
+def test_store_event_upserts_transformed_entity():
+    # --- Transformed event ---
+    transformed_event = {
+        "PartitionKey": "OttawaTraffic",
+        "RowKey": "123",
+        "EventType": "Collision",
+        "Location": "Kanata Ave & March Rd",
+        "StartTime": "2025-10-21T10:00:00Z",
+        "EndTime": "2025-10-21T12:00:00Z",
+        "Priority": "HIGH",
+        "Status": "ACTIVE",
+        "GeoCoordinates": "[-75.69, 45.40]"
     }
 
-    with patch("traffic_ingestor.helper_functions.store_event_in_table_helper.ensure_table_exists") as mock_ensure, \
-         patch("traffic_ingestor.helper_functions.store_event_in_table_helper.TableServiceClient") as mock_tsc:
-
-        # Mock table client 
+    with patch("traffic_ingestor.helper_functions.store_event_in_table_helper.TableServiceClient") as mock_tsc:
+        # Mock table client
         mock_table_client = MagicMock()
-        mock_table_client.get_entity.side_effect = Exception("Not found")  # simulate missing entity
         mock_tsc.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
         # Act
-        store_event_in_table(event, "fake-conn-string", "TrafficEvents")
+        store_event_in_table(transformed_event, "fake-conn-string", "TrafficEvents")
 
-        # Assert: ensure_table_exists was called
-        mock_ensure.assert_called_once_with("fake-conn-string", "TrafficEvents")
+        # Assert: Table client was initialized correctly
+        mock_tsc.from_connection_string.assert_called_once_with("fake-conn-string")
+        mock_tsc.from_connection_string.return_value.get_table_client.assert_called_once_with("TrafficEvents")
 
-        # Assert: get_entity was called to check for duplicates
-        mock_table_client.get_entity.assert_called_once_with(partition_key="OttawaTraffic", row_key="123-Collision")
-
-        # Assert: create_entity was called to insert the new event
-        mock_table_client.create_entity.assert_called_once()
-        inserted_entity = mock_table_client.create_entity.call_args[0][0]
-        assert inserted_entity["RowKey"] == "123-Collision"
-        assert inserted_entity["Location"] == "Kanata Ave & March Rd"
+        # Assert: upsert_entity was called with the correct event
+        mock_table_client.upsert_entity.assert_called_once_with(transformed_event)

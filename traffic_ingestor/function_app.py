@@ -4,7 +4,7 @@ import requests
 import time
 import os
 from dotenv import load_dotenv
-from traffic_ingestor.helper_functions import ensure_table_exists, cleanup_inactive_events, publish_event, store_event_in_table, has_new_events, update_hash, get_last_hash
+from traffic_ingestor.helper_functions import ensure_table_exists, transform_events, sanitize_event, cleanup_inactive_events, publish_events, store_event_in_table, has_new_events, update_hash, get_last_hash
 
 # Explicitly load the .env file from this folder
 BASE_DIR = os.path.dirname(__file__)
@@ -16,6 +16,8 @@ app = func.FunctionApp()
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
 TABLE_NAME = "TrafficEvents"
+
+ensure_table_exists(STORAGE_CONNECTION_STRING, TABLE_NAME)
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -67,10 +69,11 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 return func.HttpResponse("No new traffic events detected. Skipping Event Grid publish.", status_code=200)
 
             else: 
+                events = transform_events([sanitize_event(e) for e in events])
                 for event in events:
-                    description = event.get("message", "Unknown location")
-                    event_type = event.get("eventType", "Unknown event")
-                    status = event.get("status", "UNKNOWN")
+                    description = event.get("Location", "Unknown location")
+                    event_type = event.get("EventType", "Unknown event")
+                    status = event.get("Status", "UNKNOWN")
                     
                     try:
                         if status == "ACTIVE":
@@ -83,7 +86,7 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
 
                 cleanup_inactive_events(events, STORAGE_CONNECTION_STRING, TABLE_NAME)
                 # Publish event to trigger traffic_refresher
-                publish_event()
+                publish_events(events)
                 print("Ingestion complete.")
                 #return
                 return func.HttpResponse(str(events), status_code=200)
