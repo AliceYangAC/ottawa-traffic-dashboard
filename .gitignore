@@ -4,7 +4,7 @@ __*
 .*
 traffic_hotspots*
 *docker*
-docker-compose.yaml
+docker
 Azurite*
 .venv
 # run.*

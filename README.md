@@ -9,20 +9,23 @@ This project is an **Azure Functions–based system** for ingesting and visualiz
 ## Project Structure
 
 ```
-./
-├── traffic_ingestor/
-│   ├── helper_functions/         # Logic for fetching, storing, and cleaning up traffic events
-│   ├── tests/                    # Unit and integration tests for ingestion
-│   └── function_app.py           # Azure Function for ingesting traffic events
-│
-├── traffic_refresher/
-│   ├── helper_functions/         # Logic for parsing coordinates and visualization
-│   ├── tests/                    # Unit and integration tests for refresher
-│   └── function_app.py           # Azure Function for refreshing visualizations
-│
-├── tests/                        # Global test fixtures (conftest.py) for Azurite, Blob, and Table
-├── pytest.ini                    # Pytest configuration
-├── requirements.txt              # Python dependencies
+.
+└── ottawa-traffic-dashboard/
+    ├── dashboard/                      # Dash app for visualizing live traffic data
+    │   └── app.py                      # Main entry point for the dashboard UI
+    ├── traffic_ingestor/    
+    │   ├── tests/                      # Tests for ingestion logic and Azure Function
+    │   ├── helper_functions/          # Helpers for fetching, transforming, storing, and publishing traffic events
+    │   └── function_app.py            # Azure Function that ingests traffic data from the API
+    ├── traffic_refresher/    
+    │   ├── tests/                      # Tests for refresher logic and Azure Function
+    │   ├── helper_functions/          # Helpers for coordinate parsing and broadcast preparation
+    │   └── function_app.py            # Azure Function that broadcasts traffic updates to the dashboard
+    ├── websocket/   
+    │   └── server.py                   # WebSocket server that streams traffic events to connected clients
+    ├── pytest.ini                      # Configuration for running tests with pytest
+    └── run.sh                          # Startup script for launching the full system locally
+
 ```
 
 ---
@@ -112,7 +115,7 @@ func settings add PYTHONPATH
 This adds the setting into each app’s `local.settings.json`.
 
 ### 2. Run the Functions from root:
-Linux
+
 ```bash
 chmod +x run.sh
 ./run.sh
@@ -129,35 +132,15 @@ curl http://localhost:7071/api/FetchTrafficEvents
 ```
 
 This will populate the `TrafficEvents` table in Azurite.  
-At the same time, the ingestion function also **simulates an Event Grid event**, which automatically triggers the **Traffic Refresher** function.
+At the same time, the ingestion function also **simulates an Event Grid event**, which automatically triggers the **Traffic Refresher** function to broadcast new events to the Dash dashboard through Websocket communication. The stored data will be used for aggregate historical data models later.
 
 ---
 
-### 2. Automatic refresher trigger (edit this for Dash later)
-When the refresher is triggered by the simulated Event Grid event, it will:
-- Read the newly populated events from the `TrafficEvents` table.  
-- Parse and validate coordinates.  
-- Generate a density map of active traffic events.  
-- Write the visualization (`traffic_hotspots.png`) into the `visualizations` container in Azurite Blob Storage.
+### 2. Visit the Dash app to view the hotspots generated from the traffic.
 
----
-
-## Verifying Results in Azurite
-
-- **List table entities**:
-  ```bash
-  az storage entity query --connection-string "UseDevelopmentStorage=true" --table-name TrafficEvents
-  ```
-
-- **List blobs**:
-  ```bash
-  az storage blob list --connection-string "UseDevelopmentStorage=true" --container-name visualizations --output table
-  ```
-
-- **Download the visualization**:
-  ```bash
-  az storage blob download --connection-string "UseDevelopmentStorage=true" --container-name visualizations --name traffic_hotspots.png --file hotspot.png
-  ```
+```bash
+http://localhost:8050/
+```
 
 ---
 
@@ -185,13 +168,8 @@ When the refresher is triggered by the simulated Event Grid event, it will:
 
 ## Future Plans
 
-- Scheduled ingestion with Azure Logic Apps  
-- Visualization dashboards in Grafana or Power BI  
-- Integration tests for E2E testing  
-- Support for additional data sources (e.g., weather, transit)  
+- Implement Redis for caching instead of thread-locking between Dash and Websocket.
+- Add additional data diagrams using both real time messages via Websocket and historical data in table storage.
+- Set up Grafana dashboard to show telemetry stats of performance.
 
 ---
-
-## License
-
-MIT License
