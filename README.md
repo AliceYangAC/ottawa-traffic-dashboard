@@ -33,24 +33,35 @@ This project is an **Azure Functions–based system** for ingesting and visualiz
 ## Features
 
 - **Traffic ingestion**  
-  - Fetches traffic data from Ottawa’s public traffic API  
-  - Filters for high-priority and active events  
-  - Stores events in Azure Table Storage (`TrafficEvents`)  
-  - Cleans up inactive events  
+  - Fetches live traffic data from Ottawa’s public API  
+  - Sanitizes and transforms events into a consistent schema  
+  - Stores active events in Azure Table Storage (`TrafficEvents`)  
+  - Publishes updates to Event Grid and cleans up inactive events  
 
 - **Traffic refresher**  
-  - Reads events from Table Storage  
-  - Parses and validates geocoordinates  
-  - Generates density maps with Plotly  
-  - Saves visualizations as PNGs in Azure Blob Storage  
+  - Listens for new ingested events via Event Grid  
+  - Parses and validates geocoordinates for mapping  
+  - Broadcasts events to the dashboard through WebSocket  
+  - Keeps the dashboard updated with the latest traffic conditions  
+
+- **Dashboard**  
+  - Dash app that visualizes traffic hotspots on an interactive map  
+  - Displays event details such as type, priority, and status  
+  - Updates automatically as new events are broadcasted  
+
+- **WebSocket server**  
+  - Streams traffic events in real time to connected dashboard clients  
+  - Ensures low-latency updates without page refreshes  
 
 - **Local development**  
-  - Uses **Azurite** (via VS Code extension) for Table and Blob emulation  
-  - Functions run locally with **Azure Functions Core Tools** (`func start`)  
+  - Uses **Azurite** for local Table and Blob Storage emulation  
+  - Runs Functions locally with **Azure Functions Core Tools** (`func start`)  
+  - `run.sh` script to orchestrate services for local testing  
 
 - **Testing**  
-  - Unit & integration tests with mocks for ingestion and refresher logic  
-  - CI/CD with GitHub Actions  
+  - Unit & integration tests for ingestion and refresher pipelines  
+  - Mocks for API calls, storage, and Event Grid publishing  
+  - CI/CD integration with GitHub Actions for automated validation  
 
 ---
 
@@ -91,7 +102,7 @@ STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreacco
 OUTPUT_CONTAINER="visualizations"
 ```
 
-4. Install Azurite CLI (for automated scripts; optional otherwise):
+1. Install Azurite CLI:
 ``` bash
 npm install -g azurite
 ```
@@ -169,7 +180,7 @@ http://localhost:8050/
 ## Future Plans
 
 - Implement Redis for caching instead of thread-locking between Dash and Websocket.
-- Add additional data diagrams using both real time messages via Websocket and historical data in table storage.
+- Add additional data diagrams using both real time events via Websocket and historical data in Azurite Table Storage.
 - Set up Grafana dashboard to show telemetry stats of performance.
 
 ---
