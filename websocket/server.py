@@ -13,6 +13,7 @@ load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 PORT = int(os.getenv("PORT"))
 
+# Endpoint for WebSocket connections
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -23,6 +24,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except:
         clients.remove(websocket)
 
+# Endpoint to broadcast events to all connected clients; Dashboard listens here
 @app.post("/broadcast")
 async def broadcast(request: Request):
     data = await request.json()

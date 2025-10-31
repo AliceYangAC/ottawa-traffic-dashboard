@@ -14,6 +14,7 @@ ROW_KEY = "LastHash"
 TABLE_NAME = "TrafficMetadata"
 CONNECTION_STRING = "UseDevelopmentStorage=true"
 
+# Test get_last_hash returns the correct hash value
 def test_get_last_hash_returns_value():
     mock_entity = {"Hash": "abc123"}
     mock_table_client = MagicMock()
@@ -25,6 +26,7 @@ def test_get_last_hash_returns_value():
         assert result == "abc123"
         mock_table_client.get_entity.assert_called_once_with(partition_key=PARTITION_KEY, row_key=ROW_KEY)
 
+# Test get_last_hash handles exceptions and returns None
 def test_get_last_hash_returns_none_on_exception():
     mock_table_client = MagicMock()
     mock_table_client.get_entity.side_effect = Exception("Entity not found")
@@ -34,6 +36,7 @@ def test_get_last_hash_returns_none_on_exception():
         result = get_last_hash(CONNECTION_STRING, TABLE_NAME)
         assert result is None
 
+# Test update_hash calls upsert_entity with correct parameters
 def test_update_hash_calls_upsert_entity():
     with patch("traffic_ingestor.helper_functions.hash_tracker_helper.TableServiceClient") as mock_tsc:
         mock_table_client = MagicMock()
@@ -47,6 +50,7 @@ def test_update_hash_calls_upsert_entity():
             "Hash": "newhash123"
         })
 
+# Test has_new_events detects change and updates hash
 def test_has_new_events_detects_change_and_updates_hash():
     events = [{"id": "1", "status": "ACTIVE"}]
     current_hash = "newhash123"

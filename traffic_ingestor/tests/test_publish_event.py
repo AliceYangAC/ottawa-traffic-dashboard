@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from traffic_ingestor.helper_functions.publish_event_helper import publish_events
 
+# Test to ensure that publish_events sends correct payload to Event Grid
 def test_publish_events_posts_correct_payload():
     # --- Mock events list ---
     mock_events = [

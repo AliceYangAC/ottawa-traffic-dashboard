@@ -18,6 +18,10 @@ app.layout = html.Div([
 latest_df = pd.DataFrame()
 latest_df_lock = threading.Lock()
 
+# WebSocket listener to receive traffic event updates
+# This runs in a separate thread to not block Dash's event loop
+# If a new message is received, it updates the latest_df variable
+# Otherwise, it keeps the previous data
 def start_websocket_listener():
     async def listen():
         uri = "ws://localhost:8000/ws"
@@ -39,8 +43,11 @@ def start_websocket_listener():
                     print(f"WebSocket message error: {e}")
     asyncio.run(listen())
 
+# Start WebSocket listener in a separate thread
+# This allows Dash to run its own event loop
 threading.Thread(target=start_websocket_listener, daemon=True).start()
 
+# Dash callback to update the hotspot map
 @app.callback(
     Output("hotspot-map", "figure"),
     Input("interval", "n_intervals")

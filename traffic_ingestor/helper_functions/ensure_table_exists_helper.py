@@ -1,5 +1,6 @@
 from azure.data.tables import TableServiceClient
 
+# Helper function to ensure Table Storage table exists
 def ensure_table_exists(STORAGE_CONNECTION_STRING, TABLE_NAME):
     """
     Ensure that the given table exists in Table Storage (Azurite or Azure).

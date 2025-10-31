@@ -2,8 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from traffic_ingestor.helper_functions.store_event_in_table_helper import store_event_in_table
 
-def test_store_event_upserts_transformed_entity():
-    # --- Transformed event ---
+def test_store_event_skips_if_entity_exists():
     transformed_event = {
         "PartitionKey": "OttawaTraffic",
         "RowKey": "123",
@@ -17,16 +16,20 @@ def test_store_event_upserts_transformed_entity():
     }
 
     with patch("traffic_ingestor.helper_functions.store_event_in_table_helper.TableServiceClient") as mock_tsc:
-        # Mock table client
         mock_table_client = MagicMock()
         mock_tsc.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+
+        # Simulate that entity already exists
+        mock_table_client.get_entity.return_value = transformed_event
 
         # Act
         store_event_in_table(transformed_event, "fake-conn-string", "TrafficEvents")
 
-        # Assert: Table client was initialized correctly
-        mock_tsc.from_connection_string.assert_called_once_with("fake-conn-string")
-        mock_tsc.from_connection_string.return_value.get_table_client.assert_called_once_with("TrafficEvents")
+        # Assert: get_entity was called with correct keys
+        mock_table_client.get_entity.assert_called_once_with(
+            partition_key="OttawaTraffic",
+            row_key="123"
+        )
 
-        # Assert: upsert_entity was called with the correct event
-        mock_table_client.upsert_entity.assert_called_once_with(transformed_event)
+        # Assert: upsert_entity was NOT called
+        mock_table_client.upsert_entity.assert_not_called()
