@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from traffic_refresher.function_app import traffic_refresher
 from azure.functions import EventGridEvent
 
+# Test the successful traffic_refresher flow for processing events and broadcasting only those with valid coordinates
 def test_traffic_refresher_broadcasts_valid_events():
     # --- Fake event with GeoCoordinates ---
     fake_event_data = {

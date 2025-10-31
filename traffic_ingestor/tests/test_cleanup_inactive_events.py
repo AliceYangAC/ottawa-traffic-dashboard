@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from traffic_ingestor.helper_functions.cleanup_inactive_events_helper import cleanup_inactive_events
 
+# Test to ensure that inactive events are marked correctly
 def test_cleanup_inactive_events_marks_entities_inactive():
     # --- Incoming transformed entities ---
     current_entities = [

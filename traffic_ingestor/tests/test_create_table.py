@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from traffic_ingestor.helper_functions.ensure_table_exists_helper import ensure_table_exists
 
+# Test to ensure that ensure_table_exists calls create_table_if_not_exists
 def test_ensure_table_exists_calls_create_table():
     with patch("traffic_ingestor.helper_functions.ensure_table_exists_helper.TableServiceClient") as mock_tsc:
         # Arrange: mock service and its method

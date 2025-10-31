@@ -6,6 +6,7 @@ import requests
 
 app = func.FunctionApp()
 
+# Azure Function to process traffic events via Event Grid trigger and broadcast to Websocket dashboard
 @app.function_name(name="TrafficRefresher")
 @app.event_grid_trigger(arg_name="event")
 def traffic_refresher(event: func.EventGridEvent):
@@ -16,7 +17,6 @@ def traffic_refresher(event: func.EventGridEvent):
         logging.warning("Malformed Event Grid payload.")
         return
 
-    # payload = raw.get("events", {})
     rows = raw.get("events", [])
 
     df = pd.DataFrame(rows)
@@ -33,6 +33,7 @@ def traffic_refresher(event: func.EventGridEvent):
     # Drop rows without valid coordinates
     df = df.dropna(subset=["Latitude", "Longitude"])
 
+    # Broadcast to Websocket
     try:
         payload = df.to_dict(orient="records")
         requests.post("http://localhost:8000/broadcast", json={"events": payload})
@@ -40,4 +41,3 @@ def traffic_refresher(event: func.EventGridEvent):
     except Exception as e:
         print("Failed to broadcast: {e}")
 
-    # print("Hotspot map written to Blob Storage.")

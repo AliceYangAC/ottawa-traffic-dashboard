@@ -23,6 +23,7 @@ ensure_table_exists(STORAGE_CONNECTION_STRING, TABLE_NAME)
 MAX_RETRIES = 3
 BACKOFF_SECONDS = 5
 
+# Azure Function to fetch traffic events from Ottawa Traffic API
 @app.function_name(name="FetchTrafficEvents")
 # @app.schedule(schedule="*/5 * * * *", arg_name="timer", run_on_startup=True, use_monitor=False)
 # def fetch_traffic_events(timer: func.TimerRequest) -> None:
@@ -31,11 +32,9 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
     attempt = 0
     while attempt < MAX_RETRIES:
         try:
+            # Ensure that traffic events was successfully fetched from the Ottawa Traffic API
             response = requests.get(TRAFFIC_URL, timeout=10)
             response.raise_for_status()
-
-            # Log raw response for debugging
-            print(f"Raw response (truncated): {response.text[:500]}")
 
             # Try to parse and log keys
             try:
@@ -63,18 +62,24 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 # return func.HttpResponse("Unexpected data format", status_code=500)
 
             print(f"Total events fetched: {len(events)}")
+            
+            # Check to see if there are new events using hashing
             if not has_new_events(events, STORAGE_CONNECTION_STRING, "TrafficMetadata"):
                 #print("No new traffic events detected. Skipping Event Grid publish.")
                 #return
                 return func.HttpResponse("No new traffic events detected. Skipping Event Grid publish.", status_code=200)
 
+            # New events exist; transform the events for data visualization, deactivate events not in current
+            # API request, and broadcast through Websocket
             else: 
+                # Ensure the data has valid characters and keys
                 events = transform_events([sanitize_event(e) for e in events])
                 for event in events:
                     description = event.get("Location", "Unknown location")
                     event_type = event.get("EventType", "Unknown event")
                     status = event.get("Status", "UNKNOWN")
                     
+                    # If the data is ACTIVE, we want to store it
                     try:
                         if status == "ACTIVE":
                             store_event_in_table(event, STORAGE_CONNECTION_STRING, TABLE_NAME)
@@ -88,7 +93,6 @@ def fetch_traffic_events(req: func.HttpRequest) -> func.HttpResponse:
                 # Publish event to trigger traffic_refresher
                 publish_events(events)
                 print("Ingestion complete.")
-                #return
                 return func.HttpResponse(str(events), status_code=200)
             
         except requests.exceptions.RequestException as e:

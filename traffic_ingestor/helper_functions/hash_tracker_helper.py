@@ -6,6 +6,9 @@ import json
 PARTITION_KEY = "TrafficHash"
 ROW_KEY = "LastHash"
 
+# Helper functions to track hash of events in Table Storage
+
+# Helper function to get the last stored hash
 def get_last_hash(connection_string, table_name):
     try:
         table_service = TableServiceClient.from_connection_string(connection_string)
@@ -15,6 +18,7 @@ def get_last_hash(connection_string, table_name):
     except Exception:
         return None  # No hash stored yet
 
+# Helper function to update the stored hash
 def update_hash(connection_string, table_name, new_hash):
     table_service = TableServiceClient.from_connection_string(connection_string)
     table_client = table_service.get_table_client(table_name)
@@ -25,6 +29,7 @@ def update_hash(connection_string, table_name, new_hash):
     }
     table_client.upsert_entity(entity)
 
+# Helper function to check if there are new events based on hash comparison
 def has_new_events(events, connection_string, table_name):
     ensure_table_exists(connection_string, table_name)
     payload = json.dumps(events, sort_keys=True)

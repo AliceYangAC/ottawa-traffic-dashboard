@@ -1,6 +1,7 @@
 import json
 import ast
 
+# Helper function to extract Latitude and Longitude from GeoCoordinates field
 def extract_coords(coords):
     try:
         # If it's already a list/tuple

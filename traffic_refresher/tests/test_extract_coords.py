@@ -1,7 +1,7 @@
-# traffic_refresher/tests/test_extract_coords.py
 import pytest
 from traffic_refresher.helper_functions.extract_coords_helper import extract_coords
 
+# Test various input formats for extract_coords function
 @pytest.mark.parametrize("input_coords, expected", [
     ([-75.69, 45.40], (45.40, -75.69)),                      # list of floats
     (("-75.69", "45.40"), (45.40, -75.69)),                  # tuple of strings

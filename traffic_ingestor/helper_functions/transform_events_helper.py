@@ -1,5 +1,6 @@
 from datetime import datetime
 
+# Helper function to transform raw event data into Table Storage compatible entities
 def transform_events(events):
     entities = []
 

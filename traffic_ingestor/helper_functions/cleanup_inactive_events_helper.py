@@ -1,6 +1,7 @@
 from azure.data.tables import TableServiceClient
 from datetime import datetime, timezone
 
+# Helper function to mark inactive events every time the function is triggered
 def cleanup_inactive_events(current_entities, STORAGE_CONNECTION_STRING, TABLE_NAME="TrafficEvents"):
     try:
         print(f"Starting cleanup for {TABLE_NAME}. Total current entities: {len(current_entities)}")

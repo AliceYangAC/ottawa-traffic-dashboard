@@ -5,6 +5,7 @@ from azure.core.credentials import AzureKeyCredential
 from datetime import datetime, timezone
 import uuid
 
+# Helper function to publish events to Event Grid or local mocked Event Grid endpoint
 def publish_events(events):
     REFRESHER_URL = "http://localhost:7072/runtime/webhooks/eventgrid?functionName=TrafficRefresher"
 
