@@ -23,17 +23,17 @@ azurite --location ./azurite --silent &
 azurite_pid=$!
 sleep 5
 
-# Start traffic_ingester
-echo "Starting traffic_ingester on port 7071..."
-(cd traffic_ingester && func start --port 7071) &
-ingester_pid=$!
-sleep 10
-
 # Start Dash dashboard
 echo "Starting Dash dashboard on port 8050..."
 (python -m dashboard.app) &
 dashboard_pid=$!
-sleep 2
+sleep 5
+
+# Start traffic_ingester
+echo "Starting traffic_ingester on port 7071..."
+(cd traffic_ingester && func start --port 7071) &
+ingester_pid=$!
+sleep 15
 
 # Trap Ctrl+C and clean up
 cleanup() {
@@ -58,8 +58,8 @@ trap cleanup SIGINT
 echo ""
 echo "All services running. Press Ctrl+C to stop."
 echo ""
-echo "To start fetching traffic events, run:"
-echo "  curl http://localhost:7071/api/FetchTrafficEvents"
+echo "To view Dash:"
+echo "  http://localhost:8050"
 
 # Keep script alive
 while true; do
