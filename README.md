@@ -13,7 +13,7 @@ This project is an **Azure Functions–based system** for ingesting and visualiz
 └── ottawa-traffic-dashboard/
     ├── dashboard/                      # Dash app for visualizing live traffic data
     │   └── app.py                      # Main entry point for the dashboard UI
-    ├── traffic_ingestor/    
+    ├── traffic_ingester/    
     │   ├── tests/                      # Tests for ingestion logic and Azure Function
     │   ├── helper_functions/          # Helpers for fetching, transforming, storing, and publishing traffic events
     │   └── function_app.py            # Azure Function that ingests traffic data from the API
@@ -84,22 +84,13 @@ pip install -r requirements.txt
 
 3. **Configure environment variables**
 
-Each function app (`traffic_ingestor` and `traffic_refresher`) should have its own `.env` file with storage connection strings and API URLs. 
+Each function app (`traffic_ingester` and `traffic_refresher`) should have its own `.env` file with storage connection strings and API URLs. 
 ```ini
-# traffic_ingestor
+# traffic_ingester
 
 # Azurite connection string for testing
 STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;
 TRAFFIC_URL=https://traffic.ottawa.ca/map/service/events?accept-language=en
-```
-
-```ini
-# traffic_refresher
-
-# Azurite connection string for testing
-STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;
-# API url for Ottawa's traffic event stream
-OUTPUT_CONTAINER="visualizations"
 ```
 
 1. Install Azurite CLI:
@@ -112,13 +103,13 @@ npm install -g azurite
 ## Running Locally
 
 ### 1. Ensure `PYTHONPATH` is set:
-To make imports consistent between pytest and `func start`, set `PYTHONPATH` to the repo root (`../`) for each function app. You can do this with:
+To make imports consistent between pytest and `func start`, set `PYTHONPATH` to the repo root (`../`) for each service. You can do this with:
 ```bash
-cd traffic_ingestor
+cd traffic_ingester
 func settings add PYTHONPATH 
 ../
 
-cd ../traffic_refresher
+cd ../dashboard
 func settings add PYTHONPATH 
 ../
 ```
@@ -135,7 +126,7 @@ chmod +x run.sh
 
 ## Testing the Functions
 
-### 1. Fetch live traffic data (Ingestor)
+### 1. Fetch live traffic data (ingester)
 Trigger the ingestion function to fetch and store traffic events:
 
 ```bash

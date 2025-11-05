@@ -3,3 +3,9 @@ plotly
 pandas
 asyncio
 websockets
+flask
+azure-data-tables
+dotenv
+geopandas
+shapely
+dash_bootstrap_components

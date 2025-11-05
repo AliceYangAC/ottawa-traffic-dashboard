@@ -21,37 +21,25 @@ rm -rf ./azurite/*
 echo "Starting Azurite..."
 azurite --location ./azurite --silent &
 azurite_pid=$!
-sleep 2
+sleep 5
 
-# Start traffic_ingestor
-echo "Starting traffic_ingestor on port 7071..."
-(cd traffic_ingestor && func start --port 7071) &
-ingestor_pid=$!
-# sleep 2
-
-# Start traffic_refresher
-echo "Starting traffic_refresher on port 7072..."
-(cd traffic_refresher && func start --port 7072) &
-refresher_pid=$!
-# sleep 2
-
-# Start WebSocket server
-echo "Starting WebSocket server on port 8000..."
-(cd websocket && python server.py) &
-websocket_pid=$!
-# sleep 2
+# Start traffic_ingester
+echo "Starting traffic_ingester on port 7071..."
+(cd traffic_ingester && func start --port 7071) &
+ingester_pid=$!
+sleep 10
 
 # Start Dash dashboard
 echo "Starting Dash dashboard on port 8050..."
-(cd dashboard && python app.py) &
+(python -m dashboard.app) &
 dashboard_pid=$!
-# sleep 2
+sleep 2
 
 # Trap Ctrl+C and clean up
 cleanup() {
     echo ""
     echo "Shutting down all services..."
-    kill -9 $dashboard_pid $websocket_pid $refresher_pid $ingestor_pid $azurite_pid 2>/dev/null
+    kill -9 $dashboard_pid $websocket_pid $refresher_pid $ingester_pid $azurite_pid 2>/dev/null
 
     echo "Cleaning up lingering ports..."
     for port in "${ports[@]}"; do

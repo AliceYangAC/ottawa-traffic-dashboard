@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from traffic_ingestor.helper_functions.cleanup_inactive_events_helper import cleanup_inactive_events
+from traffic_ingester.helper_functions.cleanup_inactive_events_helper import cleanup_inactive_events
 
 # Test to ensure that inactive events are marked correctly
 def test_cleanup_inactive_events_marks_entities_inactive():
@@ -18,7 +18,7 @@ def test_cleanup_inactive_events_marks_entities_inactive():
         {"PartitionKey": "OttawaTraffic", "RowKey": "456-Construction", "Status": "INACTIVE"},  # already inactive, no update
     ]
 
-    with patch("traffic_ingestor.helper_functions.cleanup_inactive_events_helper.TableServiceClient") as mock_tsc:
+    with patch("traffic_ingester.helper_functions.cleanup_inactive_events_helper.TableServiceClient") as mock_tsc:
         # Mock table client and its query/update methods
         mock_table_client = MagicMock()
         mock_table_client.query_entities.return_value = stored_entities

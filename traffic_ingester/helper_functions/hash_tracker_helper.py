@@ -1,5 +1,5 @@
 from azure.data.tables import TableServiceClient
-from traffic_ingestor.helper_functions.ensure_table_exists_helper import ensure_table_exists
+from traffic_ingester.helper_functions.ensure_table_exists_helper import ensure_table_exists
 import hashlib
 import json
 
@@ -36,7 +36,7 @@ def has_new_events(events, connection_string, table_name):
     current_hash = hashlib.sha256(payload.encode()).hexdigest()
     last_hash = get_last_hash(connection_string, table_name)
 
-    print(f"[Hash Check] Current: {current_hash}, Last: {last_hash}")
+    print(f"[Hash Check: Any new events?] Current: {current_hash}, Last: {last_hash}")
 
     if not last_hash or current_hash != last_hash:
         update_hash(connection_string, table_name, current_hash)

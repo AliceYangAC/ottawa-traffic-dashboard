@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from traffic_ingestor.helper_functions.store_event_in_table_helper import store_event_in_table
+from traffic_ingester.helper_functions.store_event_in_table_helper import store_event_in_table
 
 def test_store_event_skips_if_entity_exists():
     transformed_event = {
@@ -15,7 +15,7 @@ def test_store_event_skips_if_entity_exists():
         "GeoCoordinates": "[-75.69, 45.40]"
     }
 
-    with patch("traffic_ingestor.helper_functions.store_event_in_table_helper.TableServiceClient") as mock_tsc:
+    with patch("traffic_ingester.helper_functions.store_event_in_table_helper.TableServiceClient") as mock_tsc:
         mock_table_client = MagicMock()
         mock_tsc.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
