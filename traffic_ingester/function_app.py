@@ -19,7 +19,6 @@ app = func.FunctionApp()
 TRAFFIC_URL = os.getenv("TRAFFIC_URL")
 STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
 TABLE_NAME = os.getenv("TABLE_NAME")
-WEBSOCKET_URL = os.getenv("WEBSOCKET_URL")
 
 ensure_table_exists(STORAGE_CONNECTION_STRING, TABLE_NAME)
 
