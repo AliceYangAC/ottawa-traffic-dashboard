@@ -1,5 +1,5 @@
 import pytest
-from traffic_ingestor.helper_functions.transform_events_helper import transform_events  # adjust import path if needed
+from traffic_ingester.helper_functions.transform_events_helper import transform_events  # adjust import path if needed
 
 # Test to ensure that transform_events creates the expected entity structure
 def test_transform_events_creates_expected_entity():

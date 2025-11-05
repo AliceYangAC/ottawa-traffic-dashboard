@@ -1,5 +1,5 @@
 .env
-__*
+__pycache__
 .vscode
 .*
 traffic_hotspots*

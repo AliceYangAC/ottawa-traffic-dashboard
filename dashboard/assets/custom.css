@@ -1,0 +1,14 @@
+.ward-details {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background-color: rgba(255,255,255,0.95);
+    padding: 15px 25px;
+    border-top: 3px solid #0d6efd; /* Bootstrap primary blue */
+    font-weight: bold;
+    max-height: 20vh;
+    overflow-y: auto;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+}

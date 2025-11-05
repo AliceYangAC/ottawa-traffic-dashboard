@@ -1,5 +1,5 @@
-from datetime import datetime
-
+from datetime import datetime, timezone
+        
 # Helper function to transform raw event data into Table Storage compatible entities
 def transform_events(events):
     entities = []
@@ -14,8 +14,8 @@ def transform_events(events):
 
             # Extract start/end times from schedule
             schedule = event.get("schedule", [])
-            start_time = schedule[0].get("startDateTime") if schedule else None
-            end_time = schedule[0].get("endDateTime") if schedule else None
+            start_time = (schedule[0].get("startDateTime")) if schedule else None
+            end_time = (schedule[0].get("endDateTime")) if schedule else None
 
             # Normalize geodata
             geodata = event.get("geodata", {}).get("coordinates", None)

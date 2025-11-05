@@ -2,14 +2,13 @@ import pytest
 from unittest.mock import patch, MagicMock
 import os
 from dotenv import load_dotenv
-from traffic_ingestor.function_app import fetch_traffic_events
 import azure.functions as func
+from traffic_ingester import function_app
 
-# Get the absolute path to the .env file
+# Load .env for STORAGE_CONNECTION_STRING and WEBSOCKET_URL
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
 load_dotenv(dotenv_path=env_path)
 
-# Test the successful ingestion flow of fetch_traffic_events
 def test_fetch_traffic_events_successful_ingestion_flow():
     # --- Raw API response ---
     raw_events = [
@@ -60,21 +59,22 @@ def test_fetch_traffic_events_successful_ingestion_flow():
 
     fake_response = MagicMock()
     fake_response.status_code = 200
-    fake_response.text = str(raw_events)
     fake_response.json.return_value = {"events": raw_events}
 
-    with patch("traffic_ingestor.function_app.requests.get", return_value=fake_response) as mock_get, \
-         patch("traffic_ingestor.function_app.sanitize_event", side_effect=lambda e: e) as mock_sanitize, \
-         patch("traffic_ingestor.function_app.transform_events", return_value=transformed_events) as mock_transform, \
-         patch("traffic_ingestor.function_app.has_new_events", return_value=True) as mock_has_new, \
-         patch("traffic_ingestor.function_app.store_event_in_table") as mock_store, \
-         patch("traffic_ingestor.function_app.cleanup_inactive_events") as mock_cleanup, \
-         patch("traffic_ingestor.function_app.publish_events") as mock_publish:
+    with patch("traffic_ingester.function_app.requests.get", return_value=fake_response) as mock_get, \
+         patch("traffic_ingester.function_app.requests.post") as mock_post, \
+         patch("traffic_ingester.function_app.sanitize_event", side_effect=lambda e: e) as mock_sanitize, \
+         patch("traffic_ingester.function_app.transform_events", return_value=transformed_events) as mock_transform, \
+         patch("traffic_ingester.function_app.has_new_events", return_value=True) as mock_has_new, \
+         patch("traffic_ingester.function_app.store_event_in_table") as mock_store, \
+         patch("traffic_ingester.function_app.cleanup_inactive_events") as mock_cleanup:
 
-        dummy_req = MagicMock(spec=func.HttpRequest)
+        # Act: call the scheduled function with a dummy TimerRequest
+        dummy_timer = MagicMock(spec=func.TimerRequest)
+        result = function_app.fetch_traffic_events(dummy_timer)
 
-        # Act
-        response = fetch_traffic_events(dummy_req)
+        # Assert: function returns None (scheduled functions don't return HttpResponse)
+        assert result is None
 
         # Assert: traffic API was called
         mock_get.assert_called_once()
@@ -87,12 +87,13 @@ def test_fetch_traffic_events_successful_ingestion_flow():
         mock_transform.assert_called_once()
 
         # Assert: only ACTIVE event was stored
-        mock_store.assert_called_once_with(transformed_events[0], os.getenv("STORAGE_CONNECTION_STRING"), "TrafficEvents")
+        mock_store.assert_called_once_with(transformed_events[0], os.getenv("STORAGE_CONNECTION_STRING"), os.getenv("TABLE_NAME"))
 
-        # Assert: cleanup and publish were called
-        mock_cleanup.assert_called_once_with(transformed_events, os.getenv("STORAGE_CONNECTION_STRING"), "TrafficEvents")
-        mock_publish.assert_called_once_with(transformed_events)
+        # Assert: cleanup was called
+        mock_cleanup.assert_called_once_with(transformed_events, os.getenv("STORAGE_CONNECTION_STRING"), os.getenv("TABLE_NAME"))
 
-        # Assert: HTTP response is 200 and contains transformed events
-        assert response.status_code == 200
-        assert "123" in response.get_body().decode()
+        # Assert: broadcast POST was called with events
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        assert kwargs["json"] == {"events": transformed_events}
+        assert kwargs["timeout"] == 5
