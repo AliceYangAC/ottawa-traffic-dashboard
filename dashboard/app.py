@@ -13,28 +13,14 @@ import os
 from flask import request
 import dash_bootstrap_components as dbc
 
-# BASE_DIR = os.path.dirname(__file__)
-# load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
-
-# Later store in Azure Key Vault
-# TABLE_NAME = os.getenv("TABLE_NAME")
-# STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
-
-# table_service = TableServiceClient.from_connection_string(conn_str=STORAGE_CONNECTION_STRING)
-
-# # Ensure the table exists before any callbacks run
-# try:
-#     table_service.create_table_if_not_exists(TABLE_NAME)
-#     table_client = table_service.get_table_client(table_name=TABLE_NAME)
-# except Exception as e:
-#     print(f"Warning: could not ensure table exists: {e}")
-
-# Load Ottawa ward boundaries once at startup
-# Make sure you have the GeoJSON file in your project, e.g. data/ottawa_wards.geojson
 BASE_DIR = os.path.dirname(__file__)
 wards_path = os.path.join(BASE_DIR, "data", "ottawa_wards.geojson")
 wards = gpd.read_file(wards_path).to_crs("EPSG:4326")
 wards_geojson = wards.__geo_interface__
+
+collision_path = os.path.join(BASE_DIR, "data", "ottawa_collision.geojson")
+collision = gpd.read_file(collision_path).to_crs("EPSG:4326")
+collision_geojson = collision.__geo_interface__
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
@@ -66,7 +52,7 @@ app.layout = dbc.Container([
         dbc.Col(
             dbc.Card([
                 dbc.CardHeader("Events by Priority"),
-                dbc.CardBody(dcc.Graph(id="event-type-bar", style={"height": "70vh"}))
+                dbc.CardBody(dcc.Graph(id="priority-pie", style={"height": "70vh"}))
             ], className="shadow-sm"),
             md=4
         )
@@ -291,38 +277,30 @@ def update_hotspot_map(data, ward_click, relayout_data):
 
     return fig
 
-
-# Dash callback to update the event type bar chart
 @app.callback(
-    Output("event-type-bar", "figure"),
+    Output("priority-pie", "figure"),
     Input("latest-data-store", "data"),
-    Input("selected-ward", "data"),
-    State("event-type-bar", "relayoutData")
+    Input("selected-ward", "data")
 )
-def update_event_type_bar(data, ward_click, relayout_data):
+def update_priority_pie(data, ward_click):
     df = pd.DataFrame(data)
     if df.empty:
-        return px.bar(title="Waiting for traffic data...")
+        return px.pie(title="Waiting for traffic data...")
 
     if ward_click:
         joined = assign_events_to_wards(df)
         df = joined[joined["WARD"] == ward_click]
 
     if df.empty:
-        return px.bar(title="No events for selected ward")
+        return px.pie(title="No events for selected ward")
 
-    counts = df["Priority"].value_counts().reset_index()
-    counts.columns = ["Priority", "Count"]
-
-    fig = px.bar(counts, x="Priority", y="Count",
-                 title="Events by Priority", text="Count")
-    fig.update_layout(yaxis_title="Number of Events")
-
-    if relayout_data:
-        if "xaxis.range" in relayout_data:
-            fig.update_xaxes(range=relayout_data["xaxis.range"])
-        if "yaxis.range" in relayout_data:
-            fig.update_yaxes(range=relayout_data["yaxis.range"])
+    fig = px.pie(
+        df,
+        names="Priority",
+        title="Event Priority Distribution",
+        hole=0.4  # optional: makes it a donut chart
+    )
+    fig.update_traces(textinfo="label+percent", pull=[0.05]*len(df["Priority"].unique()))
     return fig
 
 @app.callback(
